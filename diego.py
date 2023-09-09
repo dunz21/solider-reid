@@ -14,52 +14,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 MAX_EUCLEDIAN_DISTANCE = 50 #Valor máximo de la distancia euclidea para considerar misma persona. Tiene que configurarse de forma empírica
-cfg.MODEL.SEMANTIC_WEIGHT =  0.2
-cfg.MODEL.TEST_WEIGHT =  './model/transformer_120.pth'
-cfg.merge_from_file("./configs/market/swin_base.yml")
+def solider_model():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #Selecciona GPU si está disponible
+    cfg.MODEL.SEMANTIC_WEIGHT =  0.2
+    cfg.MODEL.TEST_WEIGHT =  './model/transformer_120.pth'
+    cfg.merge_from_file("./configs/market/swin_base.yml")
 
-#Crea el modelo y carga los pesos
-model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)
-if cfg.TEST.WEIGHT != '':
-    model.load_param(cfg.TEST.WEIGHT)
-
-def similar_between_images():
-    image_folder = 'images'
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
-    model = make_model(cfg, num_class=0, camera_num=0, view_num=0, semantic_weight=0.2)
+    #Crea el modelo y carga los pesos
+    model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)
+    if cfg.TEST.WEIGHT != '':
+        model.load_param(cfg.TEST.WEIGHT)
     model.eval().to(device)
-    transform = pth_transforms.Compose(
-        [
-            pth_transforms.ToTensor(),
-            pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ]
-    )
-    results_matrix = []
-
-    with torch.no_grad():
-        for img_name in images:
-            img_path = os.path.join(image_folder, img_name)
-            img = cv2.imread(img_path)
-            img_result, _ = model(torch.stack([transform(img)], dim=0).to(device), cam_label=0, view_label=0)
-            
-            img_results = []
-            for img_2_name in images:
-                img_2_path = os.path.join(image_folder, img_2_name)
-                img_2 = cv2.imread(img_2_path)
-                img_2_result, _ = model(torch.stack([transform(img_2)], dim=0).to(device), cam_label=0, view_label=0)
-                result_difference = euclidean_distance(img_2_result, img_result)
-                img_results.append(int(result_difference))
-
-            results_matrix.append(img_results)
-            print(img_name)
-
-    # Create a DataFrame with the results
-    df = pd.DataFrame(results_matrix, columns=images, index=images)
-    
-    # Write the DataFrame to a CSV file
-    df.to_csv('results.csv')
-
+    return model
 
 def save_images_based_on_id(n_frame,sub_frame,id):
     if n_frame == 1:
@@ -165,7 +131,7 @@ def main():
                     )
     yolo = YOLO("yolov8n.pt") #Crea modelo de detección
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #Selecciona GPU si está disponible
-    model.eval().to(device) #Mueve modelo a GPU
+    model = solider_model()
     t3=0
     t4=0
     #Inicialización de variables
@@ -192,7 +158,7 @@ def main():
             class_ = int(output[6])
             score = int(output[5])
             sub_frame = frame[bbox_tl_y:bbox_br_y,bbox_tl_x:bbox_br_x] #Extrae el sub frame donde aparece cada persona
-            save_images_based_on_id(n_frame,sub_frame,tracker_id)
+            # save_images_based_on_id(n_frame,sub_frame,tracker_id)
             with torch.no_grad():
                 s_frame = transform(sub_frame) #Aplica preprocesamiento a la imagen
                 t3 = time.time()
