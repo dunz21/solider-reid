@@ -12,10 +12,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.preprocessing import normalize
 
 def solider_model():
     cfg.MODEL.SEMANTIC_WEIGHT =  0.2
-    cfg.MODEL.TEST_WEIGHT =  './model/transformer_120.pth'
+    cfg.TEST.WEIGHT =  './model/swin_base_market.pth'
     cfg.merge_from_file("./configs/market/swin_base.yml")
 
     #Crea el modelo y carga los pesos
@@ -25,32 +26,58 @@ def solider_model():
     model.eval()
     return model
 
+def transform_image(path):
+    image = cv2.imread(path)
+    # image = np.array(np.float32(image))
+    # image = normalize(np.array(image).reshape(-1,3), axis=0)
+    # image = image.reshape(384,128,3)
+    # image = torch.from_numpy(image)
 
-def similar_between_images():
-    image_folder = 'people'
-    images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
-    model = solider_model()
+    transform = pth_transforms.Compose(
+        [
+            pth_transforms.ToTensor(),
+            pth_transforms.Resize((384,128)),
+            pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ]
+    )
+    image = transform(image)
+    return image
+
+
+def transform_image_2(path):
+    image = cv2.resize(cv2.imread(path),(384,128))
+    # image = np.array(np.float32(image)) # No cambia mucho
+
     transform = pth_transforms.Compose(
         [
             pth_transforms.ToTensor(),
             pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ]
     )
+    image = transform(image)
+    return image
+
+def similar_between_images():
+    image_folder = 'people_2'
+    images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
+    images = sorted(images)
+    model = solider_model()
+    
     results_matrix = []
 
     with torch.no_grad():
         for img_name in images:
             img_path = os.path.join(image_folder, img_name)
-            img = cv2.imread(img_path)
-            img_result, _ = model(torch.stack([transform(img)], dim=0), cam_label=0, view_label=0)
+            img = transform_image(img_path)
+            img_result, _ = model(torch.stack([img], dim=0), cam_label=0, view_label=0)
             
             img_results = []
             for img_2_name in images:
                 img_2_path = os.path.join(image_folder, img_2_name)
-                img_2 = cv2.imread(img_2_path)
-                img_2_result, _ = model(torch.stack([transform(img_2)], dim=0), cam_label=0, view_label=0)
+                img_2 = transform_image(img_2_path)
+                img_2_result, _ = model(torch.stack([img_2], dim=0), cam_label=0, view_label=0)
                 result_difference = euclidean_distance(img_2_result, img_result)
-                img_results.append(int(result_difference))
+                img_results.append("{:.2f}".format(result_difference[0][0]*1))
 
             results_matrix.append(img_results)
             print(img_name)
