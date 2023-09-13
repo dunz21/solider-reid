@@ -13,11 +13,10 @@ import torch
 from torchvision import transforms as pth_transforms
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 from datetime import datetime
+from utils.metrics import euclidean_distance
 import pickle
 import hashlib
 import base64
-
-
 
 def solider_model():
     cfg.merge_from_file("./configs/market/swin_base.yml")
@@ -34,46 +33,21 @@ def solider_model():
     model.eval()
     return model
 
-def generate_result_id_md5(result):
-    # Convert the result to bytes and calculate its MD5 hash
-    result_bytes = torch.tensor(result).numpy().tobytes()  # Serialize the result
-    result_hash = hashlib.md5(result_bytes).hexdigest()  # Calculate the MD5 hash
-
-    return result_hash
-
-def generate_result_id(result):
-    # Convert the result to bytes and calculate its hash using SHA-256
-    result_bytes = pickle.dumps(result)  # Serialize the result
-    result_hash = hashlib.sha256(result_bytes).hexdigest()  # Calculate the SHA-256 hash
-
-    return result_hash
-
-def encode_result_base64(result):
-    # Serialize the result and encode it as Base64
-    result_bytes = torch.tensor(result).numpy().tobytes()  # Serialize the result
-    result_base64 = base64.b64encode(result_bytes).decode()  # Encode as Base64 and decode to get a string
-
-    return result_base64
-
 def main():
-    # torch.manual_seed(42)
-
     input_dir = 'people'
     glob_dir = input_dir + '/*.png'
     paths = [file for file in sorted(glob.glob(glob_dir))]
     features = transform_images_solider(paths)
     k_mean_simple(features,paths,input_dir)
     
-
 def transform_images_solider(path_list):
-    # Load and resize images
-    images = [cv2.resize(cv2.imread(file), (384, 128)) for file in path_list]
-    images = np.array(np.float32(images).transpose(0, 1, 2, 3))
+    images = [np.array(np.float32(cv2.imread(file))) for file in path_list]
     model = solider_model()
 
     transform = pth_transforms.Compose(
         [
             pth_transforms.ToTensor(),
+            pth_transforms.Resize((384,128), antialias=True),
             pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ]
     )
@@ -82,26 +56,6 @@ def transform_images_solider(path_list):
         features,feature_maps = model(torch.stack(s_frame,dim=0),cam_label=0, view_label=0) #Genera embedding
     return features
 
-def transform_image(path):
-    image = cv2.resize(cv2.imread(path), (224, 224))
-    image = np.array(np.float32(image).reshape(-1,3))
-    image = normalize(np.array(image), axis=0)
-    return image
-
-def apply_solider(image):
-    model = solider_model()
-    transform = pth_transforms.Compose(
-        [
-            pth_transforms.ToTensor(),
-            pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ]
-    )
-    with torch.no_grad():
-        s_frame = transform(image)
-        features,feature_maps = model(torch.stack([s_frame],dim=0),cam_label=0, view_label=0) #Genera embedding
-    return features
-
-# En una carpeta voy a tener fotos de 2 personas. Las debe clasificar correctamente
 def k_mean_simple(features,paths,input_dir,hash=""):
     reshaped_features = features.reshape(len(paths), -1)
     # Normalize the features
@@ -115,14 +69,6 @@ def k_mean_simple(features,paths,input_dir,hash=""):
     kmodel.fit(reduced_features)
     kpredictions = kmodel.predict(reduced_features)
 
-    # TEST WITH OTHER IMAGE
-    # other_image = transform_image('images/5/img_5_20.png')
-    # features_other = apply_solider(other_image.reshape(224,224,3))
-    # # reduced_features_other = pca.fit_transform(features_other)
-    # kpredictions_other = kmodel.predict(features_other)
-    # TEST WITH OTHER IMAGE
-
-
     # Save clustered images to separate folders
     if os.path.exists(input_dir+'/output'):
         shutil.rmtree(input_dir+'/output')
@@ -131,7 +77,6 @@ def k_mean_simple(features,paths,input_dir,hash=""):
     for i in range(len(paths)):
         shutil.copy2(paths[i], input_dir+"/output/cluster" + str(kpredictions[i]))
     print_count_unique_ids_in_clusters(input_dir+'/output',hash)
-    
 
 def print_count_unique_ids_in_clusters(output_folder,hash=""):
     cluster_counts = {}  # Dictionary to store counts for each cluster
@@ -163,6 +108,37 @@ def print_count_unique_ids_in_clusters(output_folder,hash=""):
     return cluster_counts
 
 
+
+def apply_solider(path):
+    image = cv2.resize(cv2.imread(path), (384, 128))
+    model = solider_model()
+    transform = pth_transforms.Compose(
+        [
+            pth_transforms.ToTensor(),
+            pth_transforms.Resize((384,128), antialias=True),
+            pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ]
+    )
+    with torch.no_grad():
+        s_frame = transform(image)
+        features,feature_maps = model(torch.stack([s_frame],dim=0),cam_label=0, view_label=0) #Genera embedding
+    return features
+
+def compare_2_images():
+    # TEST WITH OTHER IMAGE
+    features_other = apply_solider('images/3/img_3_20.png')
+    features_other2 = apply_solider('images/3/img_3_60.png')
+    distance = euclidean_distance(features_other,features_other2)
+    print(distance)
+    # join_images = np.stack([features_other,features_other2])
+    # k = 2
+    # kmodel = KMeans(n_clusters=k, random_state=728, n_init=10)
+    # kmodel.fit(join_images)
+    # kpredictions = kmodel.predict(join_images)
+    # TEST WITH OTHER IMAGE
+
+
+# compare_2_images()
 
 # print_count_unique_ids_in_clusters('./people/output')
 
