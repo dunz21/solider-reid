@@ -18,15 +18,50 @@ import pickle
 import hashlib
 import base64
 
+def optimal_k_with_plot(features):
+    distortions = []
+    K = range(1, 10)
+    for k in K:
+        kmeanModel = KMeans(n_clusters=k,n_init=10)
+        kmeanModel.fit(features)
+        distortions.append(kmeanModel.inertia_)
+
+    plt.figure(figsize=(16, 8))
+    plt.plot(K, distortions, 'bx-')
+    plt.xlabel('k')
+    plt.ylabel('Distortion')
+    plt.title('The Elbow Method showing the optimal k')
+    plt.show()
+
+    # Simply choose the elbow point for now, you may need a more robust way
+    best_k = 3  # assuming 3 clusters, modify as needed.
+    return best_k
+
+def optimal_k(features):
+    distortions = []
+    K = range(1, 11)  # Check for up to 10 clusters
+    for k in K:
+        kmeanModel = KMeans(n_clusters=k,n_init=10)
+        kmeanModel.fit(features)
+        distortions.append(kmeanModel.inertia_)
+
+    # Compute the rate of change between subsequent distortions
+    deltas = np.diff(distortions)
+    
+    # Compute rate of change of deltas
+    double_deltas = np.diff(deltas)
+    
+    # The optimal K will be where the rate of change starts to plateau, or the first positive double_delta
+    best_k = np.where(double_deltas > 0)[0][0] + 2  # +2 because the index is shifted due to double differentiation
+    best_k=10
+    return best_k
+
+
 def solider_model():
     cfg.merge_from_file("./configs/market/swin_base.yml")
     cfg.MODEL.SEMANTIC_WEIGHT =  0.2
-    # cfg.TEST.WEIGHT =  './model/swin_base.pth'
     cfg.TEST.WEIGHT =  './model/swin_base_market.pth'
-    # cfg.TEST.WEIGHT =  './model/transformer_120.pth'
-    # cfg.TEST.PRETRAIN_PATH =  './model/swin_base_patch4_window7_224.pth'
 
-    #Crea el modelo y carga los pesos
     model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)
     if cfg.TEST.WEIGHT != '':
         model.load_param(cfg.TEST.WEIGHT)
@@ -34,11 +69,11 @@ def solider_model():
     return model
 
 def main():
-    input_dir = 'people'
-    glob_dir = input_dir + '/*.png'
-    paths = [file for file in sorted(glob.glob(glob_dir))]
+    base_dir = 'images_copy'
+    paths = [os.path.join(dp, f) for dp, dn, filenames in os.walk(base_dir) for f in filenames if f.endswith('.png')]
+    paths = sorted(paths)
     features = transform_images_solider(paths)
-    k_mean_simple(features,paths,input_dir)
+    k_mean_simple(features, paths, base_dir)
     
 def transform_images_solider(path_list):
     images = [np.array(np.float32(cv2.imread(file))) for file in path_list]
@@ -56,7 +91,7 @@ def transform_images_solider(path_list):
         features,feature_maps = model(torch.stack(s_frame,dim=0),cam_label=0, view_label=0) #Genera embedding
     return features
 
-def k_mean_simple(features,paths,input_dir,hash=""):
+def k_mean_simple(features, paths, base_dir, hash=""):
     reshaped_features = features.reshape(len(paths), -1)
     # Normalize the features
     normalized_features = normalize(reshaped_features, axis=1)
@@ -64,19 +99,20 @@ def k_mean_simple(features,paths,input_dir,hash=""):
     pca = PCA(n_components=0.95)
     reduced_features = pca.fit_transform(normalized_features)
     # Cluster using KMeans
-    k = 2
+    k = optimal_k(reduced_features)
     kmodel = KMeans(n_clusters=k, random_state=728, n_init=10)
     kmodel.fit(reduced_features)
     kpredictions = kmodel.predict(reduced_features)
 
     # Save clustered images to separate folders
-    if os.path.exists(input_dir+'/output'):
-        shutil.rmtree(input_dir+'/output')
+    result_dir = base_dir + '_result'
+    if os.path.exists(result_dir):
+        shutil.rmtree(result_dir)
     for i in range(k):
-        os.makedirs(input_dir+"/output/cluster" + str(i))
+        os.makedirs(result_dir + "/cluster" + str(i))
     for i in range(len(paths)):
-        shutil.copy2(paths[i], input_dir+"/output/cluster" + str(kpredictions[i]))
-    print_count_unique_ids_in_clusters(input_dir+'/output',hash)
+        destination_folder = result_dir + "/cluster" + str(kpredictions[i])
+        shutil.copy2(paths[i], destination_folder)
 
 def print_count_unique_ids_in_clusters(output_folder,hash=""):
     cluster_counts = {}  # Dictionary to store counts for each cluster

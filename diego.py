@@ -13,11 +13,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-MAX_EUCLEDIAN_DISTANCE = 50 #Valor máximo de la distancia euclidea para considerar misma persona. Tiene que configurarse de forma empírica
+MAX_EUCLEDIAN_DISTANCE = 150 #Valor máximo de la distancia euclidea para considerar misma persona. Tiene que configurarse de forma empírica
 def solider_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #Selecciona GPU si está disponible
     cfg.MODEL.SEMANTIC_WEIGHT =  0.2
-    cfg.MODEL.TEST_WEIGHT =  './model/transformer_120.pth'
+    cfg.TEST.WEIGHT =  './model/swin_base_market.pth'
     cfg.merge_from_file("./configs/market/swin_base.yml")
 
     #Crea el modelo y carga los pesos
@@ -102,6 +102,18 @@ def track_by_feat(original_tracker_id,ids_feat_dict,feat):
         tracker_feat_id = original_tracker_id
     return tracker_feat_id
 
+def transform_image(image):
+    image = np.array(np.float32(image))
+    transform = pth_transforms.Compose(
+        [
+            pth_transforms.ToTensor(),
+            pth_transforms.Resize((384,128)),
+            pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ]
+    )
+    image = transform(image)
+    return image
+
 
 def main():
     #Configuración de OpenCV
@@ -121,17 +133,12 @@ def main():
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Use appropriate codec (e.g., 'XVID', 'MJPG', 'H264', etc.)
     out = cv2.VideoWriter("/Users/diegosepulveda/Documents/diego/dev/ML/Cams/papers/SOLIDER-REID/output.mp4", fourcc, fps, (width, height)) #INTRODUCIR PATH DE GUARDADO
 
-    transform = pth_transforms.Compose(
-                        [
-                            pth_transforms.ToTensor(),
-                            pth_transforms.Normalize(
-                                (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
-                            ),
-                        ]
-                    )
+    
     yolo = YOLO("yolov8n.pt") #Crea modelo de detección
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #Selecciona GPU si está disponible
     model = solider_model()
+    t1=0
+    t2=0
     t3=0
     t4=0
     #Inicialización de variables
@@ -145,9 +152,7 @@ def main():
         # Break the loop if we have reached the end of the video
         if not ret:
             break
-        t1 = time.time()
         detections = yolo.track(frame,verbose=False,persist=True,classes=0)[0] #Genera detecciones de personas
-        t2 = time.time()
         boxes = detections.cpu().numpy().boxes.data
         for output in boxes: #Procesa cada persona por separado
             bbox_tl_x = int(output[0])
@@ -160,10 +165,8 @@ def main():
             sub_frame = frame[bbox_tl_y:bbox_br_y,bbox_tl_x:bbox_br_x] #Extrae el sub frame donde aparece cada persona
             # save_images_based_on_id(n_frame,sub_frame,tracker_id)
             with torch.no_grad():
-                s_frame = transform(sub_frame) #Aplica preprocesamiento a la imagen
-                t3 = time.time()
+                s_frame = transform_image(sub_frame) #Aplica preprocesamiento a la imagen
                 feat,feature_maps = model(torch.stack([s_frame], dim=0).to(device),cam_label=0, view_label=0) #Genera embedding
-                t4 = time.time()
             # plot_feature_maps(feature_maps)
             # visualize_feat_heatmap(feat)
             tracker_feat_id = track_by_feat(tracker_id,ids_feat_dict,feat)
