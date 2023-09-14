@@ -18,11 +18,11 @@ import pickle
 import hashlib
 import base64
 
-def optimal_k_with_plot(features):
+def optimal_k_with_plot(features, save_path):
     distortions = []
-    K = range(1, 10)
+    K = range(1, 40)
     for k in K:
-        kmeanModel = KMeans(n_clusters=k,n_init=10)
+        kmeanModel = KMeans(n_clusters=k, n_init=10)
         kmeanModel.fit(features)
         distortions.append(kmeanModel.inertia_)
 
@@ -31,29 +31,51 @@ def optimal_k_with_plot(features):
     plt.xlabel('k')
     plt.ylabel('Distortion')
     plt.title('The Elbow Method showing the optimal k')
-    plt.show()
 
-    # Simply choose the elbow point for now, you may need a more robust way
-    best_k = 3  # assuming 3 clusters, modify as needed.
+    plt.savefig(save_path+'.png')
+
+    best_k = 3
+    return best_k
+
+def optimal_k_with_silhouette(features, max_clusters=40, save_path=None):
+    silhouette_scores = []
+    K_range = range(2, max_clusters + 1)  # Start from 2 clusters
+
+    for k in K_range:
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+        cluster_labels = kmeans.fit_predict(features)
+        silhouette_avg = silhouette_score(features, cluster_labels)
+        silhouette_scores.append(silhouette_avg)
+
+    # Find the K value with the highest silhouette score
+    best_k = K_range[silhouette_scores.index(max(silhouette_scores))]
+
+    if save_path:
+        # Plot the silhouette scores and save as an image
+        plt.figure(figsize=(10, 6))
+        plt.plot(K_range, silhouette_scores, 'bo-')
+        plt.xlabel('Number of Clusters (K)')
+        plt.ylabel('Silhouette Score')
+        plt.title('Silhouette Score for Optimal K')
+        plt.grid()
+        plt.savefig(save_path + '_silhouette.png')
+
     return best_k
 
 def optimal_k(features):
     distortions = []
-    K = range(1, 11)  # Check for up to 10 clusters
+    K = range(1, 60)  # Check for up to 10 clusters
     for k in K:
         kmeanModel = KMeans(n_clusters=k,n_init=10)
         kmeanModel.fit(features)
         distortions.append(kmeanModel.inertia_)
 
-    # Compute the rate of change between subsequent distortions
     deltas = np.diff(distortions)
     
-    # Compute rate of change of deltas
     double_deltas = np.diff(deltas)
     
-    # The optimal K will be where the rate of change starts to plateau, or the first positive double_delta
     best_k = np.where(double_deltas > 0)[0][0] + 2  # +2 because the index is shifted due to double differentiation
-    best_k=10
+    best_k=24
     return best_k
 
 
@@ -68,8 +90,8 @@ def solider_model():
     model.eval()
     return model
 
-def main():
-    base_dir = 'images_copy'
+def main(path_folder):
+    base_dir = path_folder
     paths = [os.path.join(dp, f) for dp, dn, filenames in os.walk(base_dir) for f in filenames if f.endswith('.png')]
     paths = sorted(paths)
     features = transform_images_solider(paths)
@@ -83,7 +105,7 @@ def transform_images_solider(path_list):
         [
             pth_transforms.ToTensor(),
             pth_transforms.Resize((384,128), antialias=True),
-            pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            pth_transforms.Normalize((0.485, 0.456, 0.606), (0.229, 0.224, 0.225)),
         ]
     )
     with torch.no_grad():
@@ -99,13 +121,16 @@ def k_mean_simple(features, paths, base_dir, hash=""):
     pca = PCA(n_components=0.95)
     reduced_features = pca.fit_transform(normalized_features)
     # Cluster using KMeans
-    k = optimal_k(reduced_features)
+    # k = optimal_k(reduced_features)
+    k = 96
+    # optimal_k_with_plot(reduced_features,base_dir)
+    # optimal_k_with_silhouette(features=reduced_features,save_path=base_dir)
     kmodel = KMeans(n_clusters=k, random_state=728, n_init=10)
     kmodel.fit(reduced_features)
     kpredictions = kmodel.predict(reduced_features)
 
     # Save clustered images to separate folders
-    result_dir = base_dir + '_result'
+    result_dir = base_dir + '_result_kmeans_'+str(k)
     if os.path.exists(result_dir):
         shutil.rmtree(result_dir)
     for i in range(k):
@@ -144,5 +169,13 @@ def print_count_unique_ids_in_clusters(output_folder,hash=""):
     return cluster_counts
 
 
-for i in range(1,2):
-    main()
+# for i in range(1,2):
+#     main('images_copy_background_isnet-general-use')
+
+main('images_copy')
+
+# main('images_copy_background_isnet-general-use')
+# main('images_copy_background_silueta')
+# main('images_copy_background_u2net')
+# main('images_copy_background_u2net_human_seg')
+# main('images_copy_background_u2netp')
