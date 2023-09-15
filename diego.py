@@ -16,9 +16,9 @@ import seaborn as sns
 MAX_EUCLEDIAN_DISTANCE = 150 #Valor máximo de la distancia euclidea para considerar misma persona. Tiene que configurarse de forma empírica
 def solider_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #Selecciona GPU si está disponible
+    cfg.merge_from_file("./configs/market/swin_base.yml")
     cfg.MODEL.SEMANTIC_WEIGHT =  0.2
     cfg.TEST.WEIGHT =  './model/swin_base_market.pth'
-    cfg.merge_from_file("./configs/market/swin_base.yml")
 
     #Crea el modelo y carga los pesos
     model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)

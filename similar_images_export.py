@@ -16,11 +16,10 @@ from sklearn.preprocessing import normalize
 from sklearn.metrics.pairwise import cosine_similarity
 
 def solider_model():
+    cfg.merge_from_file("./configs/market/swin_base.yml")
     cfg.MODEL.SEMANTIC_WEIGHT =  0.2
     cfg.TEST.WEIGHT =  './model/swin_base_market.pth'
-    cfg.merge_from_file("./configs/market/swin_base.yml")
 
-    #Crea el modelo y carga los pesos
     model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)
     if cfg.TEST.WEIGHT != '':
         model.load_param(cfg.TEST.WEIGHT)
@@ -58,8 +57,8 @@ def transform_image_2(path):
     image = transform(image)
     return image
 
-def similar_between_images():
-    image_folder = 'people_2'
+def similar_between_images(folder_name):
+    image_folder = folder_name
     images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
     images = sorted(images)
     model = solider_model()
@@ -87,6 +86,6 @@ def similar_between_images():
     df = pd.DataFrame(results_matrix, columns=images, index=images)
     
     # Write the DataFrame to a CSV file
-    df.to_csv('similar_images_result.csv')
+    df.to_csv('similar_images_result_'+folder_name+'.csv')
 
-similar_between_images()
+similar_between_images('people_2')

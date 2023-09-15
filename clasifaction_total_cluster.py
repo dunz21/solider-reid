@@ -114,20 +114,20 @@ def transform_images_solider(path_list):
     return features
 
 def k_mean_simple(features, paths, base_dir, hash=""):
-    reshaped_features = features.reshape(len(paths), -1)
+    # reshaped_features = features.reshape(len(paths), -1)
     # Normalize the features
-    normalized_features = normalize(reshaped_features, axis=1)
+    # normalized_features = normalize(reshaped_features, axis=1)
     # Reduce dimensions using PCA
-    pca = PCA(n_components=0.95)
-    reduced_features = pca.fit_transform(normalized_features)
+    # pca = PCA(n_components=0.95)
+    # reduced_features = pca.fit_transform(normalized_features)
     # Cluster using KMeans
     # k = optimal_k(reduced_features)
     k = 96
     # optimal_k_with_plot(reduced_features,base_dir)
     # optimal_k_with_silhouette(features=reduced_features,save_path=base_dir)
     kmodel = KMeans(n_clusters=k, random_state=728, n_init=10)
-    kmodel.fit(reduced_features)
-    kpredictions = kmodel.predict(reduced_features)
+    kmodel.fit(features)
+    kpredictions = kmodel.predict(features)
 
     # Save clustered images to separate folders
     result_dir = base_dir + '_result_kmeans_'+str(k)
