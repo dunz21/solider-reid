@@ -24,6 +24,7 @@ def solider_model():
     if cfg.TEST.WEIGHT != '':
         model.load_param(cfg.TEST.WEIGHT)
     model.eval()
+    assert cfg.TEST.WEIGHT != ''
     return model
 
 def transform_image(path):
@@ -44,43 +45,44 @@ def transform_image(path):
     return image
 
 
-def transform_image_2(path):
-    image = cv2.resize(cv2.imread(path),(384,128))
-    # image = np.array(np.float32(image)) # No cambia mucho
-
-    transform = pth_transforms.Compose(
-        [
-            pth_transforms.ToTensor(),
-            pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ]
-    )
-    image = transform(image)
-    return image
-
 def similar_between_images(folder_name):
     image_folder = folder_name
     images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
     images = sorted(images)
     model = solider_model()
-    
     results_matrix = []
-
+    
+    # Version with all images and 1 infere in a total array (IMPROVE PERFORMANCE)
+    img_transform = [transform_image(os.path.join(image_folder, img)) for img in images]
     with torch.no_grad():
-        for img_name in images:
-            img_path = os.path.join(image_folder, img_name)
-            img = transform_image(img_path)
-            img_result, _ = model(torch.stack([img], dim=0), cam_label=0, view_label=0)
-            
-            img_results = []
-            for img_2_name in images:
-                img_2_path = os.path.join(image_folder, img_2_name)
-                img_2 = transform_image(img_2_path)
-                img_2_result, _ = model(torch.stack([img_2], dim=0), cam_label=0, view_label=0)
-                result_difference = euclidean_distance(img_2_result, img_result)
-                img_results.append("{:.2f}".format(result_difference[0][0]*1))
+        list_features,_ = model(torch.stack(img_transform, dim=0), cam_label=0, view_label=0)
 
-            results_matrix.append(img_results)
-            print(img_name)
+    
+    for feat in list_features:
+        img_results = []
+        for feat2 in list_features:
+            result_difference = euclidean_distance(torch.stack([feat2],dim=0), torch.stack([feat],dim=0))
+            img_results.append("{:.2f}".format(result_difference[0][0]*1))
+        results_matrix.append(img_results)
+
+
+    # Iterative version one by one
+    # with torch.no_grad():
+    #     for img_name in images:
+    #         img_path = os.path.join(image_folder, img_name)
+    #         img = transform_image(img_path)
+    #         img_result, _ = model(torch.stack([img], dim=0), cam_label=0, view_label=0)
+            
+    #         img_results = []
+    #         for img_2_name in images:
+    #             img_2_path = os.path.join(image_folder, img_2_name)
+    #             img_2 = transform_image(img_2_path)
+    #             img_2_result, _ = model(torch.stack([img_2], dim=0), cam_label=0, view_label=0)
+    #             result_difference = euclidean_distance(img_2_result, img_result)
+    #             img_results.append("{:.2f}".format(result_difference[0][0]*1))
+
+    #         results_matrix.append(img_results)
+    #         print(img_name)
 
     # Create a DataFrame with the results
     df = pd.DataFrame(results_matrix, columns=images, index=images)
@@ -88,4 +90,4 @@ def similar_between_images(folder_name):
     # Write the DataFrame to a CSV file
     df.to_csv('similar_images_result_'+folder_name+'.csv')
 
-similar_between_images('people_2')
+similar_between_images('people3_bg')
