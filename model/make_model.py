@@ -418,8 +418,9 @@ class build_transformer_local(nn.Module):
                     [global_feat, local_feat_1 / 4, local_feat_2 / 4, local_feat_3 / 4, local_feat_4 / 4], dim=1)
 
     def load_param(self, trained_path):
-        param_dict = torch.load(trained_path)
+        param_dict = torch.load(trained_path, map_location = 'cpu')
         for i in param_dict:
+            print('DIEGO=>',i, self.state_dict()[i.replace('module.', '')].shape, param_dict[i].shape)
             self.state_dict()[i.replace('module.', '')].copy_(param_dict[i])
         print('Loading pretrained model from {}'.format(trained_path))
 

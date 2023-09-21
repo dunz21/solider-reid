@@ -1,13 +1,18 @@
 MODEL:
-  PRETRAIN_HW_RATIO: 2
+  PRETRAIN_CHOICE: "imagenet"
+  PRETRAIN_PATH: "/home/xxx/.cache/torch/checkpoints/jx_vit_base_p16_224-80ecf9dd.pth"
   METRIC_LOSS_TYPE: "triplet"
   IF_LABELSMOOTH: "off"
   IF_WITH_CENTER: "no"
   NAME: "transformer"
   NO_MARGIN: True
   DEVICE_ID: ('0')
-  TRANSFORMER_TYPE: "swin_base_patch4_window7_224"
+  TRANSFORMER_TYPE: "vit_base_patch16_224_TransReID"
   STRIDE_SIZE: [16, 16]
+  SIE_CAMERA: True
+  SIE_COE: 3.0
+  JPM: True
+  RE_ARRANGE: True
 
 INPUT:
   SIZE_TRAIN: [384, 128]
@@ -19,8 +24,8 @@ INPUT:
   PIXEL_STD: [0.5, 0.5, 0.5]
 
 DATASETS:
-  NAMES: ('msmt17')
-  ROOT_DIR: ('path/to/msmt17/datasets')
+  NAMES: ('market1501')
+  ROOT_DIR: ('../../data')
 
 DATALOADER:
   SAMPLER: "softmax_triplet"
@@ -30,14 +35,13 @@ DATALOADER:
 SOLVER:
   OPTIMIZER_NAME: "SGD"
   MAX_EPOCHS: 120
-  BASE_LR: 0.0008
-  WARMUP_EPOCHS: 20
+  BASE_LR: 0.008
   IMS_PER_BATCH: 64
-  WARMUP_METHOD: "cosine"
+  WARMUP_METHOD: "linear"
   LARGE_FC_LR: False
   CHECKPOINT_PERIOD: 120
-  LOG_PERIOD: 20
-  EVAL_PERIOD: 10
+  LOG_PERIOD: 50
+  EVAL_PERIOD: 120
   WEIGHT_DECAY: 1e-4
   WEIGHT_DECAY_BIAS: 1e-4
   BIAS_LR_FACTOR: 2
@@ -46,8 +50,8 @@ TEST:
   EVAL: True
   IMS_PER_BATCH: 256
   RE_RANKING: False
-  WEIGHT: ""
+  # WEIGHT: "../logs/market_vit_transreid/transformer_120.pth"
   NECK_FEAT: "before"
   FEAT_NORM: "yes"
 
-OUTPUT_DIR: "./log/msmt17/swin_base"
+OUTPUT_DIR: "../logs/market_vit_transreid"

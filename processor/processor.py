@@ -172,6 +172,7 @@ def do_inference(cfg,
             target_view = target_view.to(device)
             #img.shape -> torch.Size([256, 3, 384, 128])
             feat , _ = model(img, cam_label=camids, view_label=target_view)
+            #feat.shape -> torch.Size([256, 768])
             evaluator.update((feat, pid, camid))
             img_path_list.extend(imgpath)
 
