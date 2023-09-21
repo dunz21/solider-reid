@@ -79,27 +79,52 @@ def optimal_k(features):
     return best_k
 
 
-def solider_model():
-    cfg.merge_from_file("./configs/market/swin_base.yml")
+def feat_solider_model(model_type='swin', images=[]):
+    if model_type == 'swin':
+        cfg.merge_from_file("./configs/market/swin_base.yml")
+    else:
+        cfg.merge_from_file("./configs/market/vit_transreid.yml")
     cfg.MODEL.SEMANTIC_WEIGHT =  0.2
-    cfg.TEST.WEIGHT =  './model/swin_base_market.pth'
 
+    if model_type == 'swin':
+        cfg.TEST.WEIGHT =  './model/vit_base_market.pth'
+    else:
+        cfg.MODEL.PRETRAIN_PATH =  './model/jx_vit_base_p16_224-80ecf9dd.pth'
+        #cfg.TEST.WEIGHT =  './model/swin_base_market.pth' 
+            # MAS MALO
+        # cfg.TEST.WEIGHT =  './model/transformer_120.pth'
+            #base.cls_token torch.Size([1, 1, 768]) torch.Size([1, 1, 384])
+        # cfg.TEST.WEIGHT =  './model/vit_transreid_market.pth'
+            # base.cls_token torch.Size([1, 1, 768]) torch.Size([1, 1, 768])
+            # base.pos_embed torch.Size([1, 193, 768]) torch.Size([1, 211, 768])
+        # cfg.TEST.WEIGHT =  './model/vit_base_market.pth'
+            # base.cls_token torch.Size([1, 1, 768]) torch.Size([1, 1, 768])
+            # base.pos_embed torch.Size([1, 193, 768]) torch.Size([1, 129, 768])
+
+    
     model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)
     if cfg.TEST.WEIGHT != '':
         model.load_param(cfg.TEST.WEIGHT)
     model.eval()
-    return model
 
-def main(path_folder):
+    with torch.no_grad():
+        model_features = model(torch.stack(images,dim=0),cam_label=0, view_label=0) #Genera embedding
+    if model_type == 'swin':
+        feat, _ = model_features
+        return feat
+    else:
+        return model_features
+
+def main(path_folder,model_type='swin'):
     base_dir = path_folder
     paths = [os.path.join(dp, f) for dp, dn, filenames in os.walk(base_dir) for f in filenames if f.endswith('.png')]
     paths = sorted(paths)
-    features = transform_images_solider(paths)
+    features = transform_images_solider(paths,model_type)
     k_mean_simple(features, paths, base_dir)
     
-def transform_images_solider(path_list):
+def transform_images_solider(path_list,model_type='swin'):
     images = [np.array(np.float32(cv2.imread(file))) for file in path_list]
-    model = solider_model()
+    
 
     transform = pth_transforms.Compose(
         [
@@ -108,10 +133,9 @@ def transform_images_solider(path_list):
             pth_transforms.Normalize((0.485, 0.456, 0.606), (0.229, 0.224, 0.225)),
         ]
     )
-    with torch.no_grad():
-        s_frame = [transform(img) for img in images]
-        features,feature_maps = model(torch.stack(s_frame,dim=0),cam_label=0, view_label=0) #Genera embedding
-    return features
+    s_frame = [transform(img) for img in images]
+    return feat_solider_model(model_type,s_frame)
+
 
 def k_mean_simple(features, paths, base_dir, hash=""):
     # reshaped_features = features.reshape(len(paths), -1)
@@ -122,7 +146,7 @@ def k_mean_simple(features, paths, base_dir, hash=""):
     # reduced_features = pca.fit_transform(normalized_features)
     # Cluster using KMeans
     # k = optimal_k(reduced_features)
-    k = 96
+    k = 20
     # optimal_k_with_plot(reduced_features,base_dir)
     # optimal_k_with_silhouette(features=reduced_features,save_path=base_dir)
     kmodel = KMeans(n_clusters=k, random_state=728, n_init=10)
@@ -172,7 +196,7 @@ def print_count_unique_ids_in_clusters(output_folder,hash=""):
 # for i in range(1,2):
 #     main('images_copy_background_isnet-general-use')
 
-main('images_copy')
+main('images_copy','swin')
 
 # main('images_copy_background_isnet-general-use')
 # main('images_copy_background_silueta')
