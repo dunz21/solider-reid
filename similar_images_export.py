@@ -1,5 +1,6 @@
 import os, shutil
 from config import cfg
+from datetime import datetime
 from datasets import make_dataloader
 from model import make_model
 import cv2
@@ -14,6 +15,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import normalize
 from sklearn.metrics.pairwise import cosine_similarity
+from siamese_triplet.siamese_inference import test_triplet_similarity
 
 def solider_model():
     cfg.merge_from_file("./configs/market/swin_base.yml")
@@ -65,29 +67,39 @@ def similar_between_images(folder_name):
             img_results.append("{:.2f}".format(result_difference[0][0]*1))
         results_matrix.append(img_results)
 
-
-    # Iterative version one by one
-    # with torch.no_grad():
-    #     for img_name in images:
-    #         img_path = os.path.join(image_folder, img_name)
-    #         img = transform_image(img_path)
-    #         img_result, _ = model(torch.stack([img], dim=0), cam_label=0, view_label=0)
-            
-    #         img_results = []
-    #         for img_2_name in images:
-    #             img_2_path = os.path.join(image_folder, img_2_name)
-    #             img_2 = transform_image(img_2_path)
-    #             img_2_result, _ = model(torch.stack([img_2], dim=0), cam_label=0, view_label=0)
-    #             result_difference = euclidean_distance(img_2_result, img_result)
-    #             img_results.append("{:.2f}".format(result_difference[0][0]*1))
-
-    #         results_matrix.append(img_results)
-    #         print(img_name)
-
     # Create a DataFrame with the results
     df = pd.DataFrame(results_matrix, columns=images, index=images)
     
     # Write the DataFrame to a CSV file
     df.to_csv('similar_images_result_'+folder_name+'.csv')
 
-similar_between_images('people3_bg')
+def similar_between_images_2(folder_name):
+    image_folder = folder_name
+    images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
+    images = sorted(images)
+    results_matrix = []
+    # Iterative version one by one
+    with torch.no_grad():
+        for img_name in images:
+            img_path = os.path.join(image_folder, img_name)
+            # img = transform_image(img_path)
+            # img_result, _ = test_triplet_similarity(torch.stack([img], dim=0), cam_label=0, view_label=0)
+            
+            img_results = []
+            for img_2_name in images:
+                img_2_path = os.path.join(image_folder, img_2_name)
+                # img_2 = transform_image(img_2_path)
+                # img_2_result, _ = test_triplet_similarity(torch.stack([img_2], dim=0), cam_label=0, view_label=0)
+                # result_difference = euclidean_distance(img_2_result, img_result)
+                result_difference = test_triplet_similarity(img_path,img_path,img_2_path)
+                img_results.append("{:.2f}".format(result_difference))
+            results_matrix.append(img_results)
+            print(img_name)
+
+    # Create a DataFrame with the results
+    df = pd.DataFrame(results_matrix, columns=images, index=images)
+    # Write the DataFrame to a CSV file
+    log_filename = datetime.now().strftime("similar_images_result_training_"+folder_name+"%Y%m%d_%H:%M:%S.csv")
+    df.to_csv(log_filename)
+
+similar_between_images_2('people_2')

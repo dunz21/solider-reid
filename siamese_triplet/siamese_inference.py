@@ -6,7 +6,7 @@ from collections import namedtuple
 import cv2
 import torch.nn.functional as F
 import torch.nn as nn
-import embedding
+from siamese_triplet.embedding import EmbeddingResnet
 
 class TripletNet(nn.Module):
     def __init__(self, embeddingNet):
@@ -19,29 +19,17 @@ class TripletNet(nn.Module):
         E3 = self.embeddingNet(i3)
         return E1, E2, E3
 
-def get_model(args, device):
-    embeddingNet = embedding.EmbeddingResnet()
-
+def get_model(chkp,device):
+    embeddingNet = EmbeddingResnet()
     model = TripletNet(embeddingNet)
-    model = nn.DataParallel(model, device_ids=args.gpu_devices)
+    model = nn.DataParallel(model, device_ids=None)
     model = model.to(device)
-    checkpoint = torch.load('siamese-triplet/checkpoint_5.pth')
+    checkpoint = torch.load(chkp)
     model.load_state_dict(checkpoint['state_dict'])
     return model
 
-def test_triplet_similarity(anchor_img_path, pos_img_path, neg_img_path, checkpoint_path, margin=1.0):
-    if not os.path.exists(checkpoint_path) or not all(map(os.path.exists, [anchor_img_path, pos_img_path, neg_img_path])):
-        print("Files do not exist")
-        return
-
-    Args = namedtuple('Args', ['dataset', 'gpu_devices', 'ckp'])
-    # Create an instance of the named tuple
-    args = Args(dataset='custom', gpu_devices=[0], ckp=checkpoint_path)
-    model = get_model(args, 'cpu')
-
-    
-    # Load model checkpoint
-    # model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
+def test_triplet_similarity(anchor_img_path, pos_img_path, neg_img_path, margin=1.0):
+    model = get_model('./siamese_triplet/checkpoint_5.pth','cpu')
     model.eval()
 
     # Read and resize images with OpenCV
@@ -84,13 +72,14 @@ def test_triplet_similarity(anchor_img_path, pos_img_path, neg_img_path, checkpo
         # Calculate accuracy (it will be either 0 or 1 for a single triplet)
         batch_acc = prediction.sum() * 1.0 / prediction.numel()
 
-        print(f'Test Accuracy (anchor closer to positive if accuracy is 1): {batch_acc}')
+        # print(f'Test Accuracy (anchor closer to positive if accuracy is 1): {batch_acc}')
+    return loss.item()
 
 # Replace placeholders with your paths and classes
-anchor_img_path = 'img_3_20.png'
-pos_img_path = 'img_3_120.png'
-neg_img_path = 'img_3_420.png'
-checkpoint_path = './results_diego/Custom_exp1/checkpoint_50.pth'
+# anchor_img_path = 'img_3_20.png'
+# pos_img_path = 'img_3_120.png'
+# neg_img_path = 'img_3_420.png'
+# checkpoint_path = './results_diego/Custom_exp1/checkpoint_50.pth'
 
-# Test the triplet similarity
-test_triplet_similarity(anchor_img_path, pos_img_path, neg_img_path, checkpoint_path)
+# # Test the triplet similarity
+# test_triplet_similarity(anchor_img_path, pos_img_path, neg_img_path, checkpoint_path)

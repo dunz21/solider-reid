@@ -8,3 +8,4 @@ images*
 people*
 build
 model/*.pth
+__pycache__/

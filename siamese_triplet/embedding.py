@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from resnet import resnet50
+from siamese_triplet.resnet import resnet50
 
 FIXED_BLOCKS=2
 
