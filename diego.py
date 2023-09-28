@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from siamese_triplet.siamese_inference import test_triplet_similarity
+import copy
 
 MAX_EUCLEDIAN_DISTANCE = 150 #Valor máximo de la distancia euclidea para considerar misma persona. Tiene que configurarse de forma empírica
 def solider_model():
@@ -27,12 +29,23 @@ def solider_model():
     model.eval().to(device)
     return model
 
+
+def save_image_based_on_sub_frame(num_frame, sub_frame, id):
+    id_directory = os.path.join('images_subframe', str(id))
+        
+    if not os.path.exists(id_directory):
+        os.makedirs(id_directory)
+    save_path = os.path.join(id_directory, f"img_{id}_{num_frame}.png")
+    cv2.imwrite(save_path, sub_frame)
+
+
+
+
 def save_images_based_on_id(n_frame,sub_frame,id):
     if n_frame == 1:
         if os.path.exists('images'):
             shutil.rmtree('images')
     if n_frame % 20 == 0:
-        
         # Define the directory for this ID
         id_directory = os.path.join('images', str(id))
         
@@ -102,6 +115,49 @@ def track_by_feat(original_tracker_id,ids_feat_dict,feat):
         tracker_feat_id = original_tracker_id
     return tracker_feat_id
 
+
+initial_dict = {}  
+
+
+def save_images_from_dict_debug(initial_dict):
+    for key,value in initial_dict.items():
+        id_directory = os.path.join('save_images_from_dict_debug')
+        if not os.path.exists(id_directory):
+            os.makedirs(id_directory)
+        save_path = os.path.join(id_directory, f"img_{key}.png")
+        cv2.imwrite(save_path, value)
+
+
+def tracker_siamese(initial_dict, image_dict,actual_trackid,sub_frame,num_frame):
+    for key_1, value_1 in image_dict.items():  # Corrected here
+        for key_2, value_2 in image_dict.items():  # Corrected here
+            if key_1 != key_2:
+                key = '-'.join(sorted(map(str, [key_1, key_2])))
+                if key in initial_dict:
+                    if str(actual_trackid) in key and initial_dict[key] != False:
+                        print(f"Saved: Changed from {actual_trackid}->{key_1}")
+                        return key_1
+                    continue
+                else:
+                    comparison = test_triplet_similarity(value_1, value_1, value_2)
+                    # save_image_based_on_sub_frame(num_frame,sub_frame,actual_trackid)
+                print(f"Comparison between {key_1} and {key_2} equal to {comparison:.2f}")
+                if comparison > 0.6:  # Then are the same
+                    initial_dict[key] = key_1
+                    text = f"Are the same value {key_1} and {key_2}"
+                    # Si llego al valor interesado
+                    if str(actual_trackid) in key:
+                        print(f"{text} and changed from {actual_trackid}->{key_1}")
+                        return key_1
+                else:
+                    initial_dict[key] = False
+
+                
+
+    return actual_trackid
+
+
+
 def transform_image(image):
     image = np.array(np.float32(image))
     transform = pth_transforms.Compose(
@@ -133,18 +189,17 @@ def main():
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Use appropriate codec (e.g., 'XVID', 'MJPG', 'H264', etc.)
     out = cv2.VideoWriter("/Users/diegosepulveda/Documents/diego/dev/ML/Cams/papers/SOLIDER-REID/output.mp4", fourcc, fps, (width, height)) #INTRODUCIR PATH DE GUARDADO
 
-    
     yolo = YOLO("yolov8n.pt") #Crea modelo de detección
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #Selecciona GPU si está disponible
-    model = solider_model()
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #Selecciona GPU si está disponible
     t1=0
     t2=0
     t3=0
     t4=0
     #Inicialización de variables
     n_frame = 0
-    ids_feat_dict = dict() #Guarda el embedding de cada detección. Si el embedding es similar al de referencia, se considera la misma persona y se asigna el mismo ID. Si no concuerda con ningún id de referencia se añade y se considera una persona nueva
+    # ids_feat_dict = dict() #Guarda el embedding de cada detección. Si el embedding es similar al de referencia, se considera la misma persona y se asigna el mismo ID. Si no concuerda con ningún id de referencia se añade y se considera una persona nueva
     drawing_color = [0,0,255] #Color RGB de las detecciones
+    total_images_dict = {}
     while True:# True:
         n_frame +=1
         # Read a frame from the video
@@ -154,6 +209,7 @@ def main():
             break
         detections = yolo.track(frame,verbose=False,persist=True,classes=0)[0] #Genera detecciones de personas
         boxes = detections.cpu().numpy().boxes.data
+        
         for output in boxes: #Procesa cada persona por separado
             bbox_tl_x = int(output[0])
             bbox_tl_y = int(output[1])
@@ -162,20 +218,39 @@ def main():
             tracker_id = int(output[4])
             class_ = int(output[6])
             score = int(output[5])
-            sub_frame = frame[bbox_tl_y:bbox_br_y,bbox_tl_x:bbox_br_x] #Extrae el sub frame donde aparece cada persona
+            sub_frame = copy.copy(frame[bbox_tl_y:bbox_br_y,bbox_tl_x:bbox_br_x]) #Extrae el sub frame donde aparece cada persona
+            if tracker_id not in total_images_dict:
+                total_images_dict[tracker_id] =  sub_frame
+                # DEBUG PURPOSE
+                id_directory = os.path.join('images_subframe_delete')    
+                if not os.path.exists(id_directory):
+                    os.makedirs(id_directory)
+                save_path = os.path.join(id_directory, f"img_{tracker_id}.png")
+                cv2.imwrite(save_path, sub_frame)
+
+
+
+
             # save_images_based_on_id(n_frame,sub_frame,tracker_id)
             with torch.no_grad():
-                s_frame = transform_image(sub_frame) #Aplica preprocesamiento a la imagen
-                feat,feature_maps = model(torch.stack([s_frame], dim=0).to(device),cam_label=0, view_label=0) #Genera embedding
+                pass
+                # s_frame = transform_image(sub_frame) #Aplica preprocesamiento a la imagen
+                # feat,feature_maps = model(torch.stack([s_frame], dim=0).to(device),cam_label=0, view_label=0) #Genera embedding
             # plot_feature_maps(feature_maps)
             # visualize_feat_heatmap(feat)
-            tracker_feat_id = track_by_feat(tracker_id,ids_feat_dict,feat)
+            # tracker_feat_id = track_by_feat(tracker_id,ids_feat_dict,feat)
+            tracker_feat_id = tracker_siamese(initial_dict,total_images_dict,tracker_id,sub_frame,n_frame)
             cv2.rectangle(frame, (bbox_tl_x, bbox_tl_y),(bbox_br_x, bbox_br_y), color=drawing_color, thickness=2) #Draw detection rectangle
             cv2.putText(frame, f"{tracker_id} || {tracker_feat_id}", (bbox_tl_x, bbox_tl_y), cv2.FONT_HERSHEY_COMPLEX, 1, color=drawing_color, thickness=1) #Draw detection value
 
         out.write(frame) #Guarda frame
         cv2.imshow('/Users/diegosepulveda/Documents/diego/dev/ML/Cams/papers/SOLIDER-REID/retail.mp4',frame)
         print('frame {}/{} ({:.2f} ms) Tracker {:.1f} Tracker '.format(n_frame, int(frame_count),(t2-t1) * 1000,1E3 * (t4-t3)))
+
+        # if n_frame == 13:
+        #     save_images_from_dict_debug(total_images_dict)
+
+
         # plt.pause(0.0001)  # Allow time for the event loop to update
         # cv2.waitKey(0) # DEBUG
         key = cv2.waitKey(1)

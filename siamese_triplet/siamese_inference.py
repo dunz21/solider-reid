@@ -28,14 +28,14 @@ def get_model(chkp,device):
     model.load_state_dict(checkpoint['state_dict'])
     return model
 
-def test_triplet_similarity(anchor_img_path, pos_img_path, neg_img_path, margin=1.0):
-    model = get_model('./siamese_triplet/checkpoint_5.pth','cpu')
+def test_triplet_similarity(anchor_img, pos_img, neg_img, margin=1.0):
+    model = get_model('./siamese_triplet/checkpoint_15.pth','cpu')
     model.eval()
 
     # Read and resize images with OpenCV
-    anchor_img = cv2.imread(anchor_img_path)
-    pos_img = cv2.imread(pos_img_path)
-    neg_img = cv2.imread(neg_img_path)
+    # anchor_img = cv2.imread(anchor_img_path)
+    # pos_img = cv2.imread(pos_img_path)
+    # neg_img = cv2.imread(neg_img_path)
 
     anchor_img = cv2.resize(anchor_img, (228, 228))
     pos_img = cv2.resize(pos_img, (228, 228))
@@ -60,7 +60,7 @@ def test_triplet_similarity(anchor_img_path, pos_img_path, neg_img_path, margin=
         target = torch.FloatTensor(dist_E1_E2.size()).fill_(-1)
         loss = criterion(dist_E1_E2, dist_E1_E3, target)
         
-        print(f'Test Loss: {loss.item()}')
+        # print(f'Test Loss: {loss.item()}')
 
         # Test similarity based on a threshold (here, it's the margin)
         prediction = (dist_E1_E3 - dist_E1_E2 - margin).cpu().data
