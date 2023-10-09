@@ -11,3 +11,4 @@ model/*.pth
 __pycache__/
 *.csv
 siamese_triplet
+*.png
