@@ -16,7 +16,7 @@ def solider_model(path):
 
 def preprocess_image(img_path):
     transform = pth_transforms.Compose([
-        pth_transforms.Resize((256, 128)),
+        pth_transforms.Resize((384, 128)),
         pth_transforms.ToTensor(),
         pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
