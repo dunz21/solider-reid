@@ -8,6 +8,7 @@ from sklearn.decomposition import PCA
 import os
 import glob
 import seaborn as sns
+from sklearn.cluster import DBSCAN
 
 def solider_model(path):
     cfg.merge_from_file("./configs/market/swin_base.yml")
@@ -30,30 +31,45 @@ def preprocess_image(img_path):
     img = transform(img)
     return img.unsqueeze(0)
 
+def extract_images_from_subfolders(folder_paths):
+    # If the input is a string (single folder path), convert it into a list
+    if isinstance(folder_paths, str):
+        folder_paths = [folder_paths]
+    
+    all_images = []
+    
+    for folder_path in folder_paths:
+        # Walk through each main folder and its subfolders
+        for dirpath, dirnames, filenames in os.walk(folder_path):
+            # For each subfolder, find all .png images
+            images = glob.glob(os.path.join(dirpath, '*.png'))
+            all_images.extend(images)
+    return all_images
+
+
 def plot_pca(folder_path="",simpleLegend=True, title="",weight=''):
     model = solider_model(weight)
-    images = glob.glob(os.path.join(folder_path, '*.png'))
+    images = extract_images_from_subfolders(folder_path)
     # Extract image names from paths
     image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
     
     # Extract features
-    features_list = []
-    for img in images:
-        img = preprocess_image(img)
-        with torch.no_grad():
-            features, _ = model(img)
-        features_list.append(features)
-    
-    # Concatenate features using torch.cat
-    features_tensor = torch.cat(features_list, dim=0)
+    total_batch = [preprocess_image(img) for img in images]
+    with torch.no_grad():
+        features_list, _ = model(torch.cat(total_batch,dim=0))
     
     # Convert tensor to numpy array
-    features_array = features_tensor.cpu().numpy()
+    features_array = features_list.cpu().numpy()
     
     # Apply PCA
     pca = PCA(n_components=2)
     pca_result = pca.fit_transform(features_array)
-    
+
+    # Apply DBSCAN clustering
+    # dbscan = DBSCAN(eps=4, min_samples=4)  # Adjust these parameters as needed
+    # cluster_labels = dbscan.fit_predict(pca_result)
+    # cluster_palette = sns.color_palette("husl", len(set(cluster_labels)))
+
     # Extract prefix and suffix from image names for coloring
     prefixes = [int(name.split('_')[1]) for name in image_names]
     suffixes = [int(name.split('_')[2]) for name in image_names]
@@ -73,6 +89,8 @@ def plot_pca(folder_path="",simpleLegend=True, title="",weight=''):
     palette = sns.color_palette("husl", len(unique_prefixes))
     for i, (x, y) in enumerate(pca_result):
         color = palette[prefix_to_index[prefixes[i]]]
+        # cluster_color = cluster_palette[cluster_labels[i]]
+
         label = None
         if simpleLegend:
             if prefixes[i] not in added_to_legend:
@@ -83,6 +101,8 @@ def plot_pca(folder_path="",simpleLegend=True, title="",weight=''):
             added_to_legend.add(prefixes[i])
         plt.text(x, y, f"{prefixes[i]}_{suffixes[i]}", fontsize=8, ha='right', va='bottom')
         handle = plt.scatter(x, y, color=(color[0], color[1], color[2], normalized_suffixes[i]), label=label)
+        # handle = plt.scatter(x, y, color=cluster_color, label=label)
+
         if label:
             legend_handles_labels.append((handle, label))
 
