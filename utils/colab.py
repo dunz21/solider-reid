@@ -30,8 +30,8 @@ def preprocess_image(img_path):
     img = transform(img)
     return img.unsqueeze(0)
 
-def plot_pca(folder_path="",simpleLegend=True, title="",solider_weight=''):
-    model = solider_model(solider_weight)
+def plot_pca(folder_path="",simpleLegend=True, title="",weight=''):
+    model = solider_model(weight)
     images = glob.glob(os.path.join(folder_path, '*.png'))
     # Extract image names from paths
     image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
