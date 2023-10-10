@@ -9,47 +9,10 @@ from PIL import Image
 from sklearn.decomposition import PCA
 import os
 import glob
+from utils.colab import preprocess_image,solider_model
+import seaborn as sns
 
-def solider_model():
-    cfg.merge_from_file("./configs/market/swin_base.yml")
-    cfg.MODEL.SEMANTIC_WEIGHT =  0.2
-    cfg.TEST.WEIGHT =  './model/swin_base_market.pth'
-
-    model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)
-    if cfg.TEST.WEIGHT != '':
-        model.load_param(cfg.TEST.WEIGHT)
-    model.eval()
-    assert cfg.TEST.WEIGHT != ''
-    return model
-
-def transform_image(path):
-    image = cv2.imread(path)
-    image = np.array(np.float32(image))
-    # image = normalize(np.array(image).reshape(-1,3), axis=0)
-    # image = image.reshape(384,128,3)
-    # image = torch.from_numpy(image)
-
-    transform = pth_transforms.Compose(
-        [
-            pth_transforms.ToTensor(),
-            pth_transforms.Resize((384,128), antialias=True),
-            pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ]
-    )
-    image = transform(image)
-    return image
-
-def preprocess_image(img_path):
-    transform = pth_transforms.Compose([
-        pth_transforms.Resize((256, 128)),
-        pth_transforms.ToTensor(),
-        pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    img = Image.open(img_path).convert('RGB')
-    img = transform(img)
-    return img.unsqueeze(0)
-
-def plot_pca(images, model, preprocess_image):
+def plot_pca(images, model, preprocess_image,simpleLegend=True, title=""):
     """
     Plots the output of a model on images in 2D using PCA.
     
@@ -80,19 +43,52 @@ def plot_pca(images, model, preprocess_image):
     pca = PCA(n_components=2)
     pca_result = pca.fit_transform(features_array)
     
+    # Extract prefix and suffix from image names for coloring
+    prefixes = [int(name.split('_')[1]) for name in image_names]
+    suffixes = [int(name.split('_')[2]) for name in image_names]
+    max_suffix = max(suffixes)
+    min_alpha = 0.6
+    normalized_suffixes = [min_alpha + (1 - min_alpha) * (s / max_suffix) for s in suffixes]
+    
+    # Create a mapping of prefix to palette index
+    unique_prefixes = list(set(prefixes))
+    prefix_to_index = {prefix: i for i, prefix in enumerate(unique_prefixes)}
+    # Used to track which prefixes have been added to the legend already
+    added_to_legend = set()
+    legend_handles_labels = []
+
     # Plotting
     plt.figure(figsize=(10, 8))
+    palette = sns.color_palette("husl", len(unique_prefixes))
     for i, (x, y) in enumerate(pca_result):
-        plt.scatter(x, y, label=image_names[i])
-    
-    plt.legend()
+        color = palette[prefix_to_index[prefixes[i]]]
+        label = None
+        if simpleLegend:
+            if prefixes[i] not in added_to_legend:
+                label = f"img_{prefixes[i]}"
+                added_to_legend.add(prefixes[i])
+        else:
+            label = f"img_{prefixes[i]}_{suffixes[i]}"
+            added_to_legend.add(prefixes[i])
+        plt.text(x, y, f"{prefixes[i]}_{suffixes[i]}", fontsize=8, ha='right', va='bottom')
+        handle = plt.scatter(x, y, color=(color[0], color[1], color[2], normalized_suffixes[i]), label=label)
+        if label:
+            legend_handles_labels.append((handle, label))
+
+    # Sort the handles and labels
+    legend_handles_labels = sorted(legend_handles_labels, key=lambda x: x[1])
+
+    # Extract sorted handles and labels
+    sorted_handles, sorted_labels = zip(*legend_handles_labels)
+
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
-    plt.title('PCA of Model Solider')
+    plt.title(f"PCA Solider {title}")
+    plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
 
 if __name__ == "__main__":
-    model = solider_model()
+    model = solider_model('./model/swin_base_market.pth')
     folder_path = './people_2'
     image_files = glob.glob(os.path.join(folder_path, '*.png'))
-    plot_pca(image_files,model,preprocess_image)
+    plot_pca(image_files,model,preprocess_image,False,'TEST XX')
