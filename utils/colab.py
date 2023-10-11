@@ -331,4 +331,30 @@ def plot_distance_heatmap(features, image_names, distance_type='euclidean'):
     plt.tight_layout()
     plt.show()
 
+def compute_distance_matrix(features, image_names, selected_names):
+    """
+    Compute pairwise distance matrix for selected image names.
+    
+    Parameters:
+    - features (np.array): Array of shape [X, 1024] containing the features for each image.
+    - image_names (list): List of image names corresponding to the features.
+    - selected_names (list): List of selected image names for which the distance matrix should be computed.
+    
+    Returns:
+    - distance_matrix (np.array): Pairwise distance matrix for the selected image names.
+    """
 
+    # Extract features for selected images
+    selected_features = [features[image_names.index(name)] for name in selected_names]
+    
+    # Compute pairwise distances
+    distance_matrix = np.zeros((len(selected_names), len(selected_names)))
+    for i in range(len(selected_names)):
+        for j in range(len(selected_names)):
+            distance_matrix[i, j] = np.linalg.norm(selected_features[i] - selected_features[j])
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(distance_matrix, xticklabels=selected_names, yticklabels=selected_names, annot=True, cmap='YlGnBu', cbar_kws={"label": "Distance"})
+    plt.title('Pairwise Distance Heatmap')
+    plt.show()
+    return distance_matrix
