@@ -14,6 +14,7 @@ from sklearn.manifold import TSNE
 from sklearn.manifold import MDS
 from sklearn.decomposition import NMF
 from sklearn.decomposition import TruncatedSVD  # Importing TruncatedSVD
+from scipy.spatial.distance import cdist
 
 
 def solider_model(path):
@@ -125,9 +126,9 @@ def plot_pca(features_array="", image_names=[],simpleLegend=True, title="", figs
     plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
 
-def plot_tsne(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10)):
+def plot_tsne(features_array="", image_names=[],simpleLegend=True, title="",perplexity=5, figsize=(12,10)):
     # Apply t-SNE
-    tsne = TSNE(n_components=2, perplexity=5, n_iter=300)
+    tsne = TSNE(n_components=2, perplexity=perplexity, n_iter=300)
     tsne_result = tsne.fit_transform(features_array)
     
     prefixes = [int(name.split('_')[1]) for name in image_names]
@@ -304,3 +305,30 @@ def plot_svd(features_array="", image_names=[],simpleLegend=True, title="", figs
     plt.title(f"SVD Solider {title}")  # Change PCA to SVD in the title
     plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
+
+def plot_distance_heatmap(features, image_names, distance_type='euclidean'):
+    """
+    Plots a heatmap matrix of pairwise distances between images.
+
+    Parameters:
+    - features: array-like of shape [X,1024] representing the features of each image.
+    - image_names: list of image names.
+    - distance_type: 'euclidean' or 'cosine' for the type of distance to compute.
+    """
+    if distance_type == 'euclidean':
+        distances = cdist(features, features, 'euclidean')
+    elif distance_type == 'cosine':
+        distances = cdist(features, features, 'cosine')
+    else:
+        raise ValueError("Invalid distance_type. Choose 'euclidean' or 'cosine'.")
+
+    plt.figure(figsize=(10, 8))
+    plt.imshow(distances, cmap='hot', interpolation='nearest')
+    plt.colorbar()
+    plt.title(f'{distance_type.capitalize()} Distance Heatmap')
+    plt.xticks(np.arange(len(image_names)), image_names, rotation=90)
+    plt.yticks(np.arange(len(image_names)), image_names)
+    plt.tight_layout()
+    plt.show()
+
+
