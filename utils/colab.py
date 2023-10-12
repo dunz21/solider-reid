@@ -197,7 +197,7 @@ def plot_mds_dbscan(features_array="", image_names=[], plot=True, title="", figs
     if len(overlap_images) > 1:
         if overlap_images.iloc[1,1] > min_include:
             total_images_inside_big_cluster = ', '.join([f"ID: {row[0]} Total: {row[1]}" for index,row in overlap_images.iloc[1:].reset_index(drop=True).iterrows()])
-            msg = f"Total de imagenes {total_images_inside_big_cluster} encontradas en cluster ID: {idcluster1}  min_samples: {sizecluster1/5}"
+            msg = f"Total de imagenes {total_images_inside_big_cluster} encontradas en cluster ID: {idcluster1}  min_samples: {min_samples}"
             print(msg)
     ### DATA FRAME ####
 
