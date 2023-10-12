@@ -1,6 +1,37 @@
 from utils.colab import solider_result,plot_pca,plot_tsne,plot_mds,plot_nmf,plot_svd,plot_distance_heatmap,compute_distance_matrix,create_dataframe_from_folder,plot_mds_dbscan
 import pandas as pd
+import warnings
+warnings.filterwarnings('ignore')
+
+def final():
+    features_from_csv = pd.read_csv('solider.csv').sort_values(by='folder')
+    count_folders_items = features_from_csv.groupby('folder').size().reset_index(name='Count').sort_values(by='Count', ascending=False)
+    filter = count_folders_items[count_folders_items.Count > 19]
+    total_folder_to_traverse =filter['folder'].values
+
+    for i in range(len(total_folder_to_traverse)):
+        for j in range(i + 1, len(total_folder_to_traverse)):
+            folderA = total_folder_to_traverse[i] 
+            folderB = total_folder_to_traverse[j]
+            valuesA = features_from_csv[features_from_csv.folder == folderA]
+            valuesB = features_from_csv[features_from_csv.folder == folderB]
+            totalValues = pd.concat([valuesA,valuesB],ignore_index=True)
+            images_names , features = totalValues.iloc[:, 1], totalValues.iloc[:, 2:].values
+            match, msg = plot_mds_dbscan(features_array=features, image_names=images_names,simpleLegend=True, title='DB',eps=9,min_samples=14)
+            # if(match):
+            #     print(f"Calculation between {folderA} and {folderB}: {msg}")
+
+
+
 if __name__ == "__main__":
+    features_from_csv = pd.read_csv('solider.csv').sort_values(by='folder')
+    A=4
+    B=77
+    images_names, features = features_from_csv[(features_from_csv.folder == A) | (features_from_csv.folder == B)].iloc[:, 1].values, features_from_csv[(features_from_csv.folder == A) | (features_from_csv.folder == B)].iloc[:, 2:].values
+    plot_mds_dbscan(features_array=features, image_names=images_names,plot=True, title='DB',eps=9,min_samples_ratio=0.15,min_include=3)
+    plot_mds(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market')
+    # final()
+    exit()
     folder_path = './images_subframev2/1'
     test = [
         # './images_subframev2',
@@ -42,8 +73,8 @@ if __name__ == "__main__":
     # plot_distance_heatmap(features,images_names,distance_type='cosine')
     # plot_pca(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market')
     # plot_tsne(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market',perplexity=500)
-    plot_mds(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market')
-    # plot_mds_dbscan(features_array=features, image_names=images_names,simpleLegend=True, title='DB',eps=9,min_samples=14)
+    # plot_mds(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market')
+    plot_mds_dbscan(features_array=features, image_names=images_names,simpleLegend=True, title='DB',eps=9,min_samples=14)
     # plot_svd(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market')
 
     # df = create_dataframe_from_folder('./images_subframev2')

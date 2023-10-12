@@ -171,52 +171,61 @@ def plot_tsne(features_array="", image_names=[],simpleLegend=True, title="",perp
     plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
 
-def plot_mds_dbscan(features_array="", image_names=[], simpleLegend=True, title="", figsize=(12, 10), eps=0.5, min_samples=5):
+def plot_mds_dbscan(features_array="", image_names=[], plot=True, title="", figsize=(12, 10), eps=0.5, min_samples_ratio=0.15, min_include=3):
     # Apply MDS
     mds = MDS(n_components=2)
     mds_result = mds.fit_transform(features_array)
     
-    biggest_cluster_size = pd.DataFrame({'images': image_names,'id': [img.split('_')[1] for img in image_names]}).groupby('id').size().reset_index(name='Count').sort_values(by='Count', ascending=False).iloc[0,1]
+    count_image_cluster = pd.DataFrame({'images': image_names,'id': [img.split('_')[1] for img in image_names]}).groupby('id').size().reset_index(name='Count').sort_values(by='Count', ascending=False)
+    idcluster1 , sizecluster1 = count_image_cluster.iloc[0,0] , count_image_cluster.iloc[0,1]
+    idcluster2 , sizecluster2 = count_image_cluster.iloc[1,0] , count_image_cluster.iloc[1,1]
+
 
     # Apply DBSCAN clustering
-    db = DBSCAN(eps=eps, min_samples=int(biggest_cluster_size/5)).fit(mds_result)
+    min_samples = int(sizecluster1*min_samples_ratio)
+    db = DBSCAN(eps=eps, min_samples=min_samples).fit(mds_result)
     labels = db.labels_
 
+    
     ### DATA FRAME ####
-    data_images = pd.DataFrame({'images': image_names,'id': [img.split('_')[1] for img in image_names],'labels': labels})
-    count_data = data_images.groupby('id').size().reset_index(name='Count').sort_values(by='Count', ascending=False)
-    # biggest_cluster_size = count_data.iloc[0,1] # Its not necessary
+    data_images = pd.DataFrame({'images': image_names,'id': [img.split('_')[1] for img in image_names],'labels': db.labels_})
+    count_data = data_images[data_images.labels != -1].groupby('labels').size().reset_index(name='Count').sort_values(by='Count', ascending=False)
+    if len(count_data) == 0:
+        return False, ''
     id_biggest_cluster_size = count_data.iloc[0,0]
-    overlap_images = data_images[(data_images.id != id_biggest_cluster_size) & (data_images.labels != -1)].shape[0] > 0
-    if overlap_images:
-        print(f"Imagenes encontradas en cluster {data_images[(data_images.id != id_biggest_cluster_size) & (data_images.labels != -1)].shape[0]} min_samples: {biggest_cluster_size/5}")
+    overlap_images = data_images[data_images.labels == id_biggest_cluster_size].groupby('id').size().reset_index(name='Count').sort_values(by='Count', ascending=False)
+    if len(overlap_images) > 1:
+        if overlap_images.iloc[1,1] > min_include:
+            total_images_inside_big_cluster = ', '.join([f"ID: {row[0]} Total: {row[1]}" for index,row in overlap_images.iloc[1:].reset_index(drop=True).iterrows()])
+            msg = f"Total de imagenes {total_images_inside_big_cluster} encontradas en cluster ID: {idcluster1}  min_samples: {sizecluster1/5}"
+            print(msg)
     ### DATA FRAME ####
-    
 
-    # Define a color palette for DBSCAN clusters
-    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)  # excluding noise
-    cluster_palette = sns.color_palette('husl', n_clusters)
-    # Handle noise in the data
-    colors = [(0.5, 0.5, 0.5) if label == -1 else cluster_palette[label] for label in labels]
-    
-    # Plotting
-    plt.figure(figsize=figsize)
-    for i, (x, y) in enumerate(mds_result):
-        plt.text(x, y, f"{image_names[i]}", fontsize=8, ha='right', va='bottom')
-        plt.scatter(x, y, color=colors[i], label=f'Cluster {labels[i]}' if labels[i] != -1 else 'Noise')
+    if plot:
+        # Define a color palette for DBSCAN clusters
+        n_clusters = len(set(labels)) - (1 if -1 in labels else 0)  # excluding noise
+        cluster_palette = sns.color_palette('husl', n_clusters)
+        # Handle noise in the data
+        colors = [(0.5, 0.5, 0.5) if label == -1 else cluster_palette[label] for label in labels]
+        
+        # Plotting
+        plt.figure(figsize=figsize)
+        for i, (x, y) in enumerate(mds_result):
+            plt.text(x, y, f"{image_names[i]}", fontsize=8, ha='right', va='bottom')
+            plt.scatter(x, y, color=colors[i], label=f'Cluster {labels[i]}' if labels[i] != -1 else 'Noise')
 
-    plt.xlabel('MDS Dimension 1')
-    plt.ylabel('MDS Dimension 2')
-    plt.title(f"MDS with DBSCAN clustering {title}")
-    
-    # Create a legend for the clusters
-    handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=cluster_palette[i], markersize=10) for i in range(n_clusters)]
-    labels = [f'Cluster {i}' for i in range(n_clusters)]
-    if -1 in labels:  # if there's noise
-        handles.append(plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=(0.5, 0.5, 0.5), markersize=10))
-        labels.append('Noise')
-    plt.legend(handles=handles, labels=labels)
-    plt.show()
+        plt.xlabel('MDS Dimension 1')
+        plt.ylabel('MDS Dimension 2')
+        plt.title(f"MDS/ DBSCAN eps {eps} min_samples {min_samples} {title}")
+        
+        # Create a legend for the clusters
+        handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=cluster_palette[i], markersize=10) for i in range(n_clusters)]
+        labels = [f'Cluster {i}' for i in range(n_clusters)]
+        if -1 in labels:  # if there's noise
+            handles.append(plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=(0.5, 0.5, 0.5), markersize=10))
+            labels.append('Noise')
+        plt.legend(handles=handles, labels=labels)
+        plt.show()
 
 def plot_mds(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10)):
     # Apply MDS
