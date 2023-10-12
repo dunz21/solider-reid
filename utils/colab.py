@@ -15,6 +15,7 @@ from sklearn.manifold import MDS
 from sklearn.decomposition import NMF
 from sklearn.decomposition import TruncatedSVD  # Importing TruncatedSVD
 from scipy.spatial.distance import cdist
+import pandas as pd
 
 
 def solider_model(path):
@@ -166,8 +167,55 @@ def plot_tsne(features_array="", image_names=[],simpleLegend=True, title="",perp
 
     plt.xlabel('t-SNE Dimension 1')
     plt.ylabel('t-SNE Dimension 2')
-    plt.title(f"t-SNE Solider {title}")
+    plt.title(f"t-SNE({perplexity}) Solider {title}")
     plt.legend(handles=sorted_handles, labels=sorted_labels)
+    plt.show()
+
+def plot_mds_dbscan(features_array="", image_names=[], simpleLegend=True, title="", figsize=(12, 10), eps=0.5, min_samples=5):
+    # Apply MDS
+    mds = MDS(n_components=2)
+    mds_result = mds.fit_transform(features_array)
+    
+    biggest_cluster_size = pd.DataFrame({'images': image_names,'id': [img.split('_')[1] for img in image_names]}).groupby('id').size().reset_index(name='Count').sort_values(by='Count', ascending=False).iloc[0,1]
+
+    # Apply DBSCAN clustering
+    db = DBSCAN(eps=eps, min_samples=int(biggest_cluster_size/5)).fit(mds_result)
+    labels = db.labels_
+
+    ### DATA FRAME ####
+    data_images = pd.DataFrame({'images': image_names,'id': [img.split('_')[1] for img in image_names],'labels': labels})
+    count_data = data_images.groupby('id').size().reset_index(name='Count').sort_values(by='Count', ascending=False)
+    # biggest_cluster_size = count_data.iloc[0,1] # Its not necessary
+    id_biggest_cluster_size = count_data.iloc[0,0]
+    overlap_images = data_images[(data_images.id != id_biggest_cluster_size) & (data_images.labels != -1)].shape[0] > 0
+    if overlap_images:
+        print(f"Imagenes encontradas en cluster {data_images[(data_images.id != id_biggest_cluster_size) & (data_images.labels != -1)].shape[0]} min_samples: {biggest_cluster_size/5}")
+    ### DATA FRAME ####
+    
+
+    # Define a color palette for DBSCAN clusters
+    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)  # excluding noise
+    cluster_palette = sns.color_palette('husl', n_clusters)
+    # Handle noise in the data
+    colors = [(0.5, 0.5, 0.5) if label == -1 else cluster_palette[label] for label in labels]
+    
+    # Plotting
+    plt.figure(figsize=figsize)
+    for i, (x, y) in enumerate(mds_result):
+        plt.text(x, y, f"{image_names[i]}", fontsize=8, ha='right', va='bottom')
+        plt.scatter(x, y, color=colors[i], label=f'Cluster {labels[i]}' if labels[i] != -1 else 'Noise')
+
+    plt.xlabel('MDS Dimension 1')
+    plt.ylabel('MDS Dimension 2')
+    plt.title(f"MDS with DBSCAN clustering {title}")
+    
+    # Create a legend for the clusters
+    handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=cluster_palette[i], markersize=10) for i in range(n_clusters)]
+    labels = [f'Cluster {i}' for i in range(n_clusters)]
+    if -1 in labels:  # if there's noise
+        handles.append(plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=(0.5, 0.5, 0.5), markersize=10))
+        labels.append('Noise')
+    plt.legend(handles=handles, labels=labels)
     plt.show()
 
 def plot_mds(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10)):
@@ -358,3 +406,27 @@ def compute_distance_matrix(features, image_names, selected_names):
     plt.title('Pairwise Distance Heatmap')
     plt.show()
     return distance_matrix
+
+def create_dataframe_from_folder(folder_path):
+    image_list = []
+    folder_list = []
+
+    # Loop through each subfolder in the main folder
+    for folder in os.listdir(folder_path):
+        subfolder_path = os.path.join(folder_path, folder)
+
+        # Ensure that the current item is a folder (directory)
+        if os.path.isdir(subfolder_path):
+            for image in os.listdir(subfolder_path):
+
+                # Append the image name and folder name to respective lists
+                image_list.append(image)
+                folder_list.append(folder)
+
+    # Create a DataFrame from the lists
+    df = pd.DataFrame({
+        'Images': image_list,
+        'Folder': folder_list
+    })
+
+    return df
