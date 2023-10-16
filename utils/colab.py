@@ -16,7 +16,13 @@ from sklearn.decomposition import NMF
 from sklearn.decomposition import TruncatedSVD  # Importing TruncatedSVD
 from scipy.spatial.distance import cdist
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.mixture import GaussianMixture
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 
+
+#Probar normalizar datos. Aplicar clustering antes!!! Que puta es el 1024, y aplicar medidas locales
 
 def solider_model(path):
     cfg.merge_from_file("./configs/market/swin_base.yml")
@@ -171,15 +177,18 @@ def plot_tsne(features_array="", image_names=[],simpleLegend=True, title="",perp
     plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
 
-def plot_mds_dbscan(features_array="", image_names=[], plot=True, title="", figsize=(12, 10), eps=0.5, min_samples_ratio=0.15, min_include=3):
+def plot_mds_dbscan(features_array="", image_names=[], plot=True, title="", figsize=(12, 10), eps=0.5, min_samples_ratio=0.15, min_include=3, scaler=True):
+    if scaler:
+        scaler = StandardScaler().fit(features_array)
+        features_array = scaler.transform(features_array)
     # Apply MDS
-    mds = MDS(n_components=2)
+    mds = MDS(n_components=2, random_state=42)
     mds_result = mds.fit_transform(features_array)
     
     count_image_cluster = pd.DataFrame({'images': image_names,'id': [img.split('_')[1] for img in image_names]}).groupby('id').size().reset_index(name='Count').sort_values(by='Count', ascending=False)
     idcluster1 , sizecluster1 = count_image_cluster.iloc[0,0] , count_image_cluster.iloc[0,1]
     idcluster2 , sizecluster2 = count_image_cluster.iloc[1,0] , count_image_cluster.iloc[1,1]
-
+    
 
     # Apply DBSCAN clustering
     min_samples = int(sizecluster1*min_samples_ratio)
@@ -227,9 +236,12 @@ def plot_mds_dbscan(features_array="", image_names=[], plot=True, title="", figs
         plt.legend(handles=handles, labels=labels)
         plt.show()
 
-def plot_mds(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10)):
+def plot_mds(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10), scaler=True):
+    if scaler:
+        scaler = StandardScaler().fit(features_array)
+        features_array = scaler.transform(features_array)
     # Apply MDS
-    mds = MDS(n_components=2)
+    mds = MDS(n_components=2, random_state=42)
     mds_result = mds.fit_transform(features_array)
     
     # Extract prefix and suffix from image names for coloring
@@ -439,3 +451,96 @@ def create_dataframe_from_folder(folder_path):
     })
 
     return df
+
+def plot_mds_gmm(features_array="", image_names=[], simpleLegend=True, title="", figsize=(12,10), scaler=True, n_clusters=3):
+    if scaler:
+        scaler = StandardScaler().fit(features_array)
+        features_array = scaler.transform(features_array)
+        
+    # Apply MDS
+    mds = MDS(n_components=2, random_state=42)
+    mds_result = mds.fit_transform(features_array)
+    
+    # Apply GMM clustering
+    gmm = GaussianMixture(n_components=n_clusters, random_state=42)
+    gmm_labels = gmm.fit_predict(mds_result)
+    
+    # Calculate Silhouette Score
+    silhouette_avg = silhouette_score(mds_result, gmm_labels)
+    print(f"Silhouette Score: {silhouette_avg:.2f}")
+
+    # Define a color palette for GMM clusters
+    cluster_palette = sns.color_palette('husl', n_clusters)
+    
+    data_images = pd.DataFrame({'images': image_names,'id': [img.split('_')[1] for img in image_names],'labels': gmm_labels})
+    grouped = data_images.groupby(['labels', 'id']).size().reset_index(name='count')
+    print(grouped)
+
+    # Plotting
+    plt.figure(figsize=figsize)
+    for i, (x, y) in enumerate(mds_result):
+        plt.text(x, y, f"{image_names[i]}", fontsize=8, ha='right', va='bottom')
+        plt.scatter(x, y, color=cluster_palette[gmm_labels[i]], label=f'Cluster {gmm_labels[i]}' if simpleLegend else image_names[i])
+
+    # Create a legend for the clusters
+    handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=cluster_palette[i], markersize=10) for i in range(n_clusters)]
+    labels = [f'Cluster {i}' for i in range(n_clusters)]
+    plt.legend(handles=handles, labels=labels)
+    
+    plt.xlabel('MDS Dimension 1')
+    plt.ylabel('MDS Dimension 2')
+    plt.title(f"MDS with GMM clustering {title}")
+    
+    plt.show()
+
+def plot_mds_kmeans(features_array="", image_names=[], simpleLegend=True, title="", figsize=(12,10), scaler=True, n_clusters=3):
+    
+    if scaler:
+        scaler = StandardScaler().fit(features_array)
+        features_array = scaler.transform(features_array)
+        
+    # Apply MDS
+    mds = MDS(n_components=2, random_state=42)
+    mds_result = mds.fit_transform(features_array)
+    
+    # Apply KMeans clustering
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans_labels = kmeans.fit_predict(mds_result)
+
+    # Calculate Silhouette Score
+    silhouette_avg = silhouette_score(mds_result, kmeans_labels)
+    print(f"Silhouette Score: {silhouette_avg:.2f}")
+    
+    # Define a color palette for KMeans clusters
+    cluster_palette = sns.color_palette('husl', n_clusters)
+    
+
+    ### DATA FRAME ####
+    data_images = pd.DataFrame({'images': image_names,'id': [img.split('_')[1] for img in image_names],'labels': kmeans_labels})
+    grouped = data_images.groupby(['labels', 'id']).size().reset_index(name='count')
+    print(grouped)
+    ### DATA FRAME ####
+
+
+
+
+
+
+
+
+    # Plotting
+    plt.figure(figsize=figsize)
+    for i, (x, y) in enumerate(mds_result):
+        plt.text(x, y, f"{image_names[i]}", fontsize=8, ha='right', va='bottom')
+        plt.scatter(x, y, color=cluster_palette[kmeans_labels[i]], label=f'Cluster {kmeans_labels[i]}' if simpleLegend else image_names[i])
+
+    # Create a legend for the clusters
+    handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=cluster_palette[i], markersize=10) for i in range(n_clusters)]
+    labels = [f'Cluster {i}' for i in range(n_clusters)]
+    plt.legend(handles=handles, labels=labels)
+    
+    plt.xlabel('MDS Dimension 1')
+    plt.ylabel('MDS Dimension 2')
+    plt.title(f"MDS with KMeans clustering {title}")
+    
+    plt.show()

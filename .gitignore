@@ -12,3 +12,5 @@ __pycache__/
 *.csv
 siamese_triplet
 *.png
+**/**.pth
+**/**.pth.tar

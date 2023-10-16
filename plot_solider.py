@@ -1,4 +1,4 @@
-from utils.colab import solider_result,plot_pca,plot_tsne,plot_mds,plot_nmf,plot_svd,plot_distance_heatmap,compute_distance_matrix,create_dataframe_from_folder,plot_mds_dbscan
+from utils.colab import *
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
@@ -25,13 +25,15 @@ def final():
 
 if __name__ == "__main__":
     features_from_csv = pd.read_csv('solider.csv').sort_values(by='folder')
-    A=4
-    B=77
+    A=16
+    B=89
     images_names, features = features_from_csv[(features_from_csv.folder == A) | (features_from_csv.folder == B)].iloc[:, 1].values, features_from_csv[(features_from_csv.folder == A) | (features_from_csv.folder == B)].iloc[:, 2:].values
-    plot_mds_dbscan(features_array=features, image_names=images_names,plot=True, title='DB',eps=9,min_samples_ratio=0.15,min_include=3)
-    plot_mds(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market')
+    # plot_mds_dbscan(features_array=features, image_names=images_names,plot=True, title='DB',eps=9,min_samples_ratio=0.15,min_include=3)
+    # plot_mds(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market')
+    # plot_mds_kmeans(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market',scaler=False,n_clusters=3)
+    # plot_mds_gmm(features_array=features, image_names=images_names,simpleLegend=True, title='TEST swin_base_market',scaler=False,n_clusters=3)
     # final()
-    exit()
+    # exit()
     folder_path = './images_subframev2/1'
     test = [
         # './images_subframev2',
@@ -56,7 +58,7 @@ if __name__ == "__main__":
         # './images_subframev2/2',
         # './images_testsss',
         ]
-    # features , images_names = solider_result(folder_path=test, weight='./model/swin_base_market.pth')
+    features , images_names = solider_result(folder_path=test, weight='./model/swin_base_market.pth')
 
     # df = pd.DataFrame(features)
     # names = pd.DataFrame({'folder':[img.split('_')[1] for img in images_names],'images': images_names})
