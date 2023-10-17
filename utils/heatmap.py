@@ -40,7 +40,7 @@ def heatmap_solider(folder_name,weight,semantic_weight=0.2):
     # df.to_csv('similar_images_result_'+folder_name+'.csv')
     
     # Plot the heatmap
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(12, 10))
     sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
     plt.title('Similarity SOLIDER')
     plt.show()
@@ -71,7 +71,7 @@ def heatmap_transreid(folder_name,pretrain_path="TransReID/model/jx_vit_base_p16
     # df.to_csv('similar_images_result_'+folder_name+'.csv')
     
     # Plot the heatmap
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(12, 10))
     sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
     plt.title('Similarity TransReID')
     plt.show()
@@ -104,7 +104,7 @@ def heatmap_alignreid(folder_name,weight):
     # df.to_csv('similar_images_result_'+folder_name+'.csv')
     
     # Plot the heatmap
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(12, 10))
     sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
     plt.title('Similarity AlignReID')
     plt.show()

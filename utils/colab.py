@@ -18,6 +18,7 @@ from scipy.spatial.distance import cdist
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.mixture import GaussianMixture
+from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances,pairwise_distances
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from utils.pretools import load_model as load_model_solider,preprocess_image
@@ -89,6 +90,102 @@ def alignedreid_result(folder_path="", weight=''):
     return features_array, image_names
 
 #### MODELS
+
+def heatmap_solider(folder_path,weight,semantic_weight=0.2):
+    model = load_model_solider(weight=weight,semantic_weight=semantic_weight)
+    images = extract_images_from_subfolders(folder_path)
+    images = sorted(images)
+
+    results_matrix = []
+    
+    # Version with all images and 1 infer in a total array (IMPROVE PERFORMANCE)
+    total_batch = [preprocess_image(img ,384,128) for img in images]
+    with torch.no_grad():
+        list_features,_ = model(torch.stack(total_batch, dim=0))
+
+    for feat in list_features:
+        img_results = []
+        for feat2 in list_features:
+            result_difference = euclidean_distances(torch.stack([feat2],dim=0), torch.stack([feat],dim=0))
+            img_results.append(result_difference[0][0].item())  # Store as float
+        results_matrix.append(img_results)
+
+    # Create a DataFrame with the results
+    df = pd.DataFrame(results_matrix, columns=images, index=images)
+    
+    # Write the DataFrame to a CSV file
+    # df.to_csv('similar_images_result_'+folder_name+'.csv')
+    
+    # Plot the heatmap
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
+    plt.title('Similarity SOLIDER')
+    plt.show()
+
+def heatmap_transreid(folder_path,pretrain_path="TransReID/model/jx_vit_base_p16_224-80ecf9dd.pth",weight="TransReID/model/vit_transreid_market.pth"):
+    model = load_model_transreid(pretrain_path=pretrain_path,weight=weight)
+    images = extract_images_from_subfolders(folder_path)
+    images = sorted(images)
+    results_matrix = []
+    
+    # Version with all images and 1 infer in a total array (IMPROVE PERFORMANCE)
+    total_batch = [preprocess_image(img ,256,128) for img in images]
+    with torch.no_grad():
+        list_features = model(torch.stack(total_batch, dim=0), cam_label=0, view_label=0)
+
+    for feat in list_features:
+        img_results = []
+        for feat2 in list_features:
+            result_difference = euclidean_distances(torch.stack([feat2],dim=0), torch.stack([feat],dim=0))
+            img_results.append(result_difference[0][0].item())  # Store as float
+        results_matrix.append(img_results)
+
+    # Create a DataFrame with the results
+    df = pd.DataFrame(results_matrix, columns=images, index=images)
+    
+    # Write the DataFrame to a CSV file
+    # df.to_csv('similar_images_result_'+folder_name+'.csv')
+    
+    # Plot the heatmap
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
+    plt.title('Similarity TransReID')
+    plt.show()
+
+def heatmap_alignreid(folder_path,weight):
+    model = load_model_alignreid(model_path=weight)
+    images = extract_images_from_subfolders(folder_path)
+    images = sorted(images)
+    # model_path = "" #FUNCIONA
+    # model_path = "AlignedReID/Market1501_Resnet50_Alignedreid(LS)/checkpoint_ep300.pth.tar" #FUNCIOAN
+    results_matrix = []
+    
+    # Version with all images and 1 infer in a total array (IMPROVE PERFORMANCE)
+    total_batch = [preprocess_image(img ,384,128) for img in images]
+    with torch.no_grad():
+        list_features,_ = model(torch.stack(total_batch, dim=0))
+
+    for feat in list_features:
+        img_results = []
+        for feat2 in list_features:
+            result_difference = euclidean_distances(torch.stack([feat2],dim=0), torch.stack([feat],dim=0))
+            img_results.append(result_difference[0][0].item())  # Store as float
+        results_matrix.append(img_results)
+
+    # Create a DataFrame with the results
+    df = pd.DataFrame(results_matrix, columns=images, index=images)
+    
+    # Write the DataFrame to a CSV file
+    # df.to_csv('similar_images_result_'+folder_name+'.csv')
+    
+    # Plot the heatmap
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
+    plt.title('Similarity AlignReID')
+    plt.show()
+
+
+
 
 
 def plot_pca(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10)):
