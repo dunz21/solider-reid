@@ -25,6 +25,8 @@ from sklearn.metrics import silhouette_score
 from utils.pretools import load_model as load_model_solider,preprocess_image
 from TransReID.pretools import load_model as load_model_transreid
 from AlignedReID.pretools import load_model as load_model_alignreid
+from deepface import DeepFace
+import contextlib
 
 #Probar normalizar datos. Aplicar clustering antes!!! Que puta es el 1024, y aplicar medidas locales
 def extract_images_from_subfolders(folder_paths):
@@ -45,7 +47,7 @@ def extract_images_from_subfolders(folder_paths):
 #### MODELS
 
 def solider_result(folder_path="", weight='',semantic_weight=0.2):
-    model = load_model_solider(weight,semantic_weight)
+    model = load_model_solider(weight=weight,semantic_weight=semantic_weight)
     images = extract_images_from_subfolders(folder_path)
     # Extract image names from paths
     image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
@@ -88,6 +90,27 @@ def alignedreid_result(folder_path="", weight=''):
     
     # Convert tensor to numpy array
     features_array = features_list.cpu().numpy()
+    return features_array, image_names
+
+def face_id_results(folder_path,model='Facenet512',backend='opencv',enforce_detection=True):
+    images = extract_images_from_subfolders(folder_path)
+    # Extract image names from paths
+    image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
+    features_array = []
+    non_detections = []
+    
+    for img in images:
+        #embeddings
+        try:
+            with open(os.devnull, 'w') as fnull:
+                with contextlib.redirect_stdout(fnull):
+                    embedding_objs = DeepFace.represent(img_path = img, model_name = model,enforce_detection=enforce_detection,detector_backend = backend)
+            embedding = embedding_objs[0]["embedding"]
+            features_array.append(embedding)
+        except:
+            non_detections.append(img.split('/')[-1])
+            continue
+    print(f"Non detections face: {len(non_detections)} {backend}")
     return features_array, image_names
 
 #### MODELS
@@ -367,7 +390,10 @@ def plot_mds_dbscan(features_array="", image_names=[], plot=True, title="", figs
         plt.legend(handles=handles, labels=labels)
         plt.show()
 
-def plot_mds(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10), scaler=True):
+def plot_mds(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10), scaler=False):
+    if len(features_array) == 0:
+        print(f"Sin gráfico por no tener valores para {title}")
+        return False
     if scaler:
         scaler = StandardScaler().fit(features_array)
         features_array = scaler.transform(features_array)

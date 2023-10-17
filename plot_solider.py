@@ -47,18 +47,45 @@ def test():
     # './images_subframev2/2',
     # './images_testsss',
     ]
+    models = [
+        "VGG-Face", 
+        "Facenet", 
+        "Facenet512", 
+        "OpenFace", 
+        "DeepFace", 
+        "DeepID", 
+        "ArcFace", 
+        "Dlib", 
+        "SFace",
+    ]
 
+
+    backends = [
+        'opencv', 
+        'ssd', 
+        'dlib', 
+        'mtcnn', 
+        'retinaface', 
+        'mediapipe',
+        'yolov8',
+        'yunet',
+        ]
     # features , images_names = solider_result(folder_path=test, weight='./model/swin_base_market.pth')
-    features_2 , images_names_2 = transreid_result(folder_path=test, pretrain_path="TransReID/model/jx_vit_base_p16_224-80ecf9dd.pth",weight="TransReID/model/vit_transreid_market.pth")
+    # features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[2])
+    features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[3])
+    features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[4])
+    # features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[5])
+    # features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[6])
+    # features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[7])
     # features_3 , images_names_3 = alignedreid_result(folder_path=test, weight='./model/swin_base_market.pth')
 
     # plot_mds(features_array=features, image_names=images_names,simpleLegend=True, title='solider_result',scaler=True)
-    plot_mds(features_array=features_2, image_names=images_names_2,simpleLegend=True, title='transreid_result',scaler=True)
+    # plot_mds(features_array=features_2, image_names=images_names_2,simpleLegend=True, title='transreid_result')
     # plot_mds(features_array=features_3, image_names=images_names_3,simpleLegend=True, title='alignedreid_result',scaler=True)
 
 
 if __name__ == "__main__":
-    heatmap_solider('people_2',weight='./model/swin_base_market.pth',semantic_weight=0.2)
+    test()
     exit()
     features_from_csv = pd.read_csv('solider.csv').sort_values(by='folder')
     A=16

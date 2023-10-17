@@ -1,4 +1,4 @@
-from config import cfg
+from .config import cfg
 from .model import make_model
 import cv2
 from torchvision import transforms
