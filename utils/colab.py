@@ -91,7 +91,7 @@ def alignedreid_result(folder_path="", weight=''):
 
 #### MODELS
 
-def heatmap_solider(folder_path,weight,semantic_weight=0.2):
+def heatmap_solider(folder_path,weight,semantic_weight=0.2,figsize=(12, 10)):
     model = load_model_solider(weight=weight,semantic_weight=semantic_weight)
     images = extract_images_from_subfolders(folder_path)
     images = sorted(images)
@@ -117,12 +117,12 @@ def heatmap_solider(folder_path,weight,semantic_weight=0.2):
     # df.to_csv('similar_images_result_'+folder_name+'.csv')
     
     # Plot the heatmap
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=figsize)
     sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
     plt.title('Similarity SOLIDER')
     plt.show()
 
-def heatmap_transreid(folder_path,pretrain_path="TransReID/model/jx_vit_base_p16_224-80ecf9dd.pth",weight="TransReID/model/vit_transreid_market.pth"):
+def heatmap_transreid(folder_path,pretrain_path="TransReID/model/jx_vit_base_p16_224-80ecf9dd.pth",weight="TransReID/model/vit_transreid_market.pth",figsize=(12, 10)):
     model = load_model_transreid(pretrain_path=pretrain_path,weight=weight)
     images = extract_images_from_subfolders(folder_path)
     images = sorted(images)
@@ -148,12 +148,12 @@ def heatmap_transreid(folder_path,pretrain_path="TransReID/model/jx_vit_base_p16
     # df.to_csv('similar_images_result_'+folder_name+'.csv')
     
     # Plot the heatmap
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=figsize)
     sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
     plt.title('Similarity TransReID')
     plt.show()
 
-def heatmap_alignreid(folder_path,weight):
+def heatmap_alignreid(folder_path,weight,figsize=(12, 10)):
     model = load_model_alignreid(model_path=weight)
     images = extract_images_from_subfolders(folder_path)
     images = sorted(images)
@@ -182,7 +182,7 @@ def heatmap_alignreid(folder_path,weight):
     # df.to_csv('similar_images_result_'+folder_name+'.csv')
     
     # Plot the heatmap
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=figsize)
     sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
     plt.title('Similarity AlignReID')
     plt.show()
