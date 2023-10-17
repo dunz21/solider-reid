@@ -19,7 +19,7 @@ from TransReID.pretools import load_model as load_model_transreid
 from AlignedReID.pretools import load_model as load_model_alignreid
 
 
-def similar_between_images_solider(folder_name,weight,semantic_weight=0.2):
+def heatmap_solider(folder_name,weight,semantic_weight=0.2):
     image_folder = folder_name
     images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
     images = sorted(images)
@@ -51,7 +51,7 @@ def similar_between_images_solider(folder_name,weight,semantic_weight=0.2):
     plt.title('Similarity SOLIDER')
     plt.show()
 
-def similar_between_images_transreid(folder_name,pretrain_path="TransReID/model/jx_vit_base_p16_224-80ecf9dd.pth",weight="TransReID/model/vit_transreid_market.pth"):
+def heatmap_transreid(folder_name,pretrain_path="TransReID/model/jx_vit_base_p16_224-80ecf9dd.pth",weight="TransReID/model/vit_transreid_market.pth"):
     image_folder = folder_name
     images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
     images = sorted(images)
@@ -82,7 +82,7 @@ def similar_between_images_transreid(folder_name,pretrain_path="TransReID/model/
     plt.title('Similarity TransReID')
     plt.show()
 
-def similar_between_images_alignreid(folder_name,weight):
+def heatmap_alignreid(folder_name,weight):
     image_folder = folder_name
     images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
     images = sorted(images)
@@ -115,6 +115,3 @@ def similar_between_images_alignreid(folder_name,weight):
     plt.title('Similarity AlignReID')
     plt.show()
 
-similar_between_images_solider('people_2',weight='./model/swin_base_market.pth',semantic_weight=0.2)
-similar_between_images_transreid('people_2',pretrain_path="TransReID/model/jx_vit_base_p16_224-80ecf9dd.pth",weight="TransReID/model/vit_transreid_market.pth")
-similar_between_images_alignreid('people_2',weight="Alignedreid/Cuhk03_Resnet50_Alignedreid/checkpoint_ep300.pth.tar")

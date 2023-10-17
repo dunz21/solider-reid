@@ -145,7 +145,7 @@ def plot_pca(features_array="", image_names=[],simpleLegend=True, title="", figs
 
     plt.xlabel('Principal Component 1')
     plt.ylabel('Principal Component 2')
-    plt.title(f"PCA Solider {title}")
+    plt.title(f"PCA {title}")
     plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
 
@@ -189,7 +189,7 @@ def plot_tsne(features_array="", image_names=[],simpleLegend=True, title="",perp
 
     plt.xlabel('t-SNE Dimension 1')
     plt.ylabel('t-SNE Dimension 2')
-    plt.title(f"t-SNE({perplexity}) Solider {title}")
+    plt.title(f"t-SNE({perplexity}) {title}")
     plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
 
@@ -298,7 +298,7 @@ def plot_mds(features_array="", image_names=[],simpleLegend=True, title="", figs
 
     plt.xlabel('MDS Dimension 1')
     plt.ylabel('MDS Dimension 2')
-    plt.title(f"MDS Solider {title}")
+    plt.title(f"MDS {title}")
     plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
 
@@ -342,7 +342,7 @@ def plot_nmf(features_array="", image_names=[],simpleLegend=True, title="", figs
 
     plt.xlabel('NMF Component 1')
     plt.ylabel('NMF Component 2')
-    plt.title(f"NMF Solider {title}")
+    plt.title(f"NMF {title}")
     plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
 
@@ -387,62 +387,9 @@ def plot_svd(features_array="", image_names=[],simpleLegend=True, title="", figs
     
     plt.xlabel('Component 1')
     plt.ylabel('Component 2')
-    plt.title(f"SVD Solider {title}")  # Change PCA to SVD in the title
+    plt.title(f"SVD {title}")  # Change PCA to SVD in the title
     plt.legend(handles=sorted_handles, labels=sorted_labels)
     plt.show()
-
-def plot_distance_heatmap(features, image_names, distance_type='euclidean'):
-    """
-    Plots a heatmap matrix of pairwise distances between images.
-
-    Parameters:
-    - features: array-like of shape [X,1024] representing the features of each image.
-    - image_names: list of image names.
-    - distance_type: 'euclidean' or 'cosine' for the type of distance to compute.
-    """
-    if distance_type == 'euclidean':
-        distances = cdist(features, features, 'euclidean')
-    elif distance_type == 'cosine':
-        distances = cdist(features, features, 'cosine')
-    else:
-        raise ValueError("Invalid distance_type. Choose 'euclidean' or 'cosine'.")
-
-    plt.figure(figsize=(10, 8))
-    plt.imshow(distances, cmap='hot', interpolation='nearest')
-    plt.colorbar()
-    plt.title(f'{distance_type.capitalize()} Distance Heatmap')
-    plt.xticks(np.arange(len(image_names)), image_names, rotation=90)
-    plt.yticks(np.arange(len(image_names)), image_names)
-    plt.tight_layout()
-    plt.show()
-
-def compute_distance_matrix(features, image_names, selected_names):
-    """
-    Compute pairwise distance matrix for selected image names.
-    
-    Parameters:
-    - features (np.array): Array of shape [X, 1024] containing the features for each image.
-    - image_names (list): List of image names corresponding to the features.
-    - selected_names (list): List of selected image names for which the distance matrix should be computed.
-    
-    Returns:
-    - distance_matrix (np.array): Pairwise distance matrix for the selected image names.
-    """
-
-    # Extract features for selected images
-    selected_features = [features[image_names.index(name)] for name in selected_names]
-    
-    # Compute pairwise distances
-    distance_matrix = np.zeros((len(selected_names), len(selected_names)))
-    for i in range(len(selected_names)):
-        for j in range(len(selected_names)):
-            distance_matrix[i, j] = np.linalg.norm(selected_features[i] - selected_features[j])
-    
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(distance_matrix, xticklabels=selected_names, yticklabels=selected_names, annot=True, cmap='YlGnBu', cbar_kws={"label": "Distance"})
-    plt.title('Pairwise Distance Heatmap')
-    plt.show()
-    return distance_matrix
 
 def create_dataframe_from_folder(folder_path):
     image_list = []
