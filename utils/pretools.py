@@ -7,12 +7,22 @@ import numpy as np
 from PIL import Image
 
 
-def load_model():
-    cfg.merge_from_file("./configs/market/swin_base.yml")
-    cfg.MODEL.SEMANTIC_WEIGHT =  0.2
-    cfg.TEST.WEIGHT =  './model/swin_base_market.pth'
+# def load_model():
+#     cfg.merge_from_file("./configs/market/swin_base.yml")
+#     cfg.MODEL.SEMANTIC_WEIGHT =  0.2
+#     cfg.TEST.WEIGHT =  './model/swin_base_market.pth'
 
-    model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)
+#     model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)
+#     if cfg.TEST.WEIGHT != '':
+#         model.load_param(cfg.TEST.WEIGHT)
+#     model.eval()
+#     assert cfg.TEST.WEIGHT != ''
+#     return model
+
+def load_model(weight='',semantic_weight=0.2):
+    cfg.merge_from_file("./configs/market/swin_base.yml")
+    cfg.TEST.WEIGHT =  weight
+    model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = semantic_weight)
     if cfg.TEST.WEIGHT != '':
         model.load_param(cfg.TEST.WEIGHT)
     model.eval()

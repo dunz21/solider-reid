@@ -6,9 +6,7 @@ import numpy as np
 from PIL import Image
 
 
-def load_model():
-    model_path = "Alignedreid/Cuhk03_Resnet50_Alignedreid/checkpoint_ep300.pth.tar" #FUNCIONA
-    # model_path = "Alignedreid/Market1501_Resnet50_Alignedreid(LS)/checkpoint_ep300.pth.tar" #FUNCIOAN
+def load_model(model_path):
     model_alignedreid = init_model(name='resnet50', num_classes=0, loss={'softmax', 'metric'},aligned=True)
     checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
     model_dict = checkpoint['state_dict']

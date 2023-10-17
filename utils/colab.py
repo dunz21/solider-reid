@@ -20,31 +20,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-
+from utils.pretools import load_model as load_model_solider,preprocess_image
+from TransReID.pretools import load_model as load_model_transreid
+from AlignedReID.pretools import load_model as load_model_alignreid
 
 #Probar normalizar datos. Aplicar clustering antes!!! Que puta es el 1024, y aplicar medidas locales
-
-def solider_model(path):
-    cfg.merge_from_file("./configs/market/swin_base.yml")
-    cfg.MODEL.SEMANTIC_WEIGHT =  0.2
-    cfg.TEST.WEIGHT =  path
-    model = make_model(cfg, num_class=0, camera_num=0, view_num = 0, semantic_weight = cfg.MODEL.SEMANTIC_WEIGHT)
-    if cfg.TEST.WEIGHT != '':
-        model.load_param(cfg.TEST.WEIGHT)
-    model.eval()
-    assert cfg.TEST.WEIGHT != ''
-    return model
-
-def preprocess_image(img_path):
-    transform = pth_transforms.Compose([
-        pth_transforms.Resize((384, 128)),
-        pth_transforms.ToTensor(),
-        pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-    img = Image.open(img_path).convert('RGB')
-    img = transform(img)
-    return img.unsqueeze(0)
-
 def extract_images_from_subfolders(folder_paths):
     # If the input is a string (single folder path), convert it into a list
     if isinstance(folder_paths, str):
@@ -60,20 +40,56 @@ def extract_images_from_subfolders(folder_paths):
             all_images.extend(images)
     return all_images
 
-def solider_result(folder_path="", weight=''):
-    model = solider_model(weight)
+#### MODELS
+
+def solider_result(folder_path="", weight='',semantic_weight=0.2):
+    model = load_model_solider(weight,semantic_weight)
     images = extract_images_from_subfolders(folder_path)
     # Extract image names from paths
     image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
     
     # Extract features
-    total_batch = [preprocess_image(img) for img in images]
+    total_batch = [torch.stack([preprocess_image(img,384,128)], dim=0) for img in images]
     with torch.no_grad():
         features_list, _ = model(torch.cat(total_batch,dim=0))
     
     # Convert tensor to numpy array
     features_array = features_list.cpu().numpy()
     return features_array, image_names
+
+def transreid_result(folder_path="",pretrain_path="",weight=""):
+    model = load_model_transreid(pretrain_path=pretrain_path,weight=weight)
+    images = extract_images_from_subfolders(folder_path)
+    # Extract image names from paths
+    image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
+    
+    # Extract features
+    total_batch = [torch.stack([preprocess_image(img,256,128)], dim=0) for img in images]
+    with torch.no_grad():
+        features_list = model(torch.cat(total_batch,dim=0), cam_label=0, view_label=0)
+    
+    # Convert tensor to numpy array
+    features_array = features_list.cpu().numpy()
+    return features_array, image_names
+
+def alignedreid_result(folder_path="", weight=''):
+    model_path = "Alignedreid/Cuhk03_Resnet50_Alignedreid/checkpoint_ep300.pth.tar" #FUNCIONA
+    model = load_model_alignreid(model_path=model_path)
+    images = extract_images_from_subfolders(folder_path)
+    # Extract image names from paths
+    image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
+    
+    # Extract features
+    total_batch = [torch.stack([preprocess_image(img,384,128)], dim=0) for img in images]
+    with torch.no_grad():
+        features_list, _ = model(torch.cat(total_batch,dim=0))
+    
+    # Convert tensor to numpy array
+    features_array = features_list.cpu().numpy()
+    return features_array, image_names
+
+#### MODELS
+
 
 def plot_pca(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10)):
     # Apply PCA
