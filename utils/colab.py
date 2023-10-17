@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import os
 import glob
+from datetime import datetime
 import seaborn as sns
 import numpy as np
 from sklearn.cluster import DBSCAN
@@ -91,7 +92,7 @@ def alignedreid_result(folder_path="", weight=''):
 
 #### MODELS
 
-def heatmap_solider(folder_path,weight,semantic_weight=0.2,figsize=(12, 10)):
+def heatmap_solider(folder_path,weight,semantic_weight=0.2,figsize=(12, 10), plot=True):
     model = load_model_solider(weight=weight,semantic_weight=semantic_weight)
     images = extract_images_from_subfolders(folder_path)
     images = sorted(images)
@@ -114,15 +115,21 @@ def heatmap_solider(folder_path,weight,semantic_weight=0.2,figsize=(12, 10)):
     df = pd.DataFrame(results_matrix, columns=image_names, index=image_names)
     
     # Write the DataFrame to a CSV file
-    # df.to_csv('similar_images_result_'+folder_name+'.csv')
+    current_timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+    filename = f'heatmap_solider_{current_timestamp}.csv'
+    # Write the DataFrame to a CSV file
+    df = df.round(1)
+    df.to_csv(filename)
+
     
     # Plot the heatmap
-    plt.figure(figsize=figsize)
-    sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
-    plt.title('Similarity SOLIDER')
-    plt.show()
+    if plot:
+        plt.figure(figsize=figsize)
+        sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
+        plt.title('Similarity SOLIDER')
+        plt.show()
 
-def heatmap_transreid(folder_path,pretrain_path="TransReID/model/jx_vit_base_p16_224-80ecf9dd.pth",weight="TransReID/model/vit_transreid_market.pth",figsize=(12, 10)):
+def heatmap_transreid(folder_path,pretrain_path="TransReID/model/jx_vit_base_p16_224-80ecf9dd.pth",weight="TransReID/model/vit_transreid_market.pth",figsize=(12, 10), plot=True):
     model = load_model_transreid(pretrain_path=pretrain_path,weight=weight)
     images = extract_images_from_subfolders(folder_path)
     images = sorted(images)
@@ -145,15 +152,21 @@ def heatmap_transreid(folder_path,pretrain_path="TransReID/model/jx_vit_base_p16
     df = pd.DataFrame(results_matrix, columns=image_names, index=image_names)
     
     # Write the DataFrame to a CSV file
-    # df.to_csv('similar_images_result_'+folder_name+'.csv')
+    current_timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+    filename = f'heatmap_transreid_{current_timestamp}.csv'
+    # Write the DataFrame to a CSV file
+    df = df.round(1)
+    df.to_csv(filename)
+
     
     # Plot the heatmap
-    plt.figure(figsize=figsize)
-    sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
-    plt.title('Similarity TransReID')
-    plt.show()
+    if plot:
+        plt.figure(figsize=figsize)
+        sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
+        plt.title('Similarity TransReID')
+        plt.show()
 
-def heatmap_alignreid(folder_path,weight,figsize=(12, 10)):
+def heatmap_alignreid(folder_path,weight,figsize=(12, 10), plot=True):
     model = load_model_alignreid(model_path=weight)
     images = extract_images_from_subfolders(folder_path)
     images = sorted(images)
@@ -178,17 +191,19 @@ def heatmap_alignreid(folder_path,weight,figsize=(12, 10)):
     # Create a DataFrame with the results
     df = pd.DataFrame(results_matrix, columns=image_names, index=image_names)
     
+    current_timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+    filename = f'heatmap_alignreid_{current_timestamp}.csv'
     # Write the DataFrame to a CSV file
-    # df.to_csv('similar_images_result_'+folder_name+'.csv')
+    df = df.round(1)
+    df.to_csv(filename)
+
     
     # Plot the heatmap
-    plt.figure(figsize=figsize)
-    sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
-    plt.title('Similarity AlignReID')
-    plt.show()
-
-
-
+    if plot:
+        plt.figure(figsize=figsize)
+        sns.heatmap(df, annot=True, cmap="RdYlGn_r", fmt=".2f")  # Red-Yellow-Green reversed colormap
+        plt.title('Similarity AlignReID')
+        plt.show()
 
 
 def plot_pca(features_array="", image_names=[],simpleLegend=True, title="", figsize=(12,10)):
