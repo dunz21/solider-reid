@@ -1,13 +1,7 @@
 import os, shutil
 from config import cfg
-from datetime import datetime
-from datasets import make_dataloader
-import cv2
-from PIL import Image
 import torch
 from torchvision import transforms as pth_transforms
-from ultralytics import YOLO
-from utils.metrics import euclidean_distance,cosine_similarity
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
