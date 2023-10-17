@@ -81,7 +81,7 @@ def heatmap_alignreid(folder_name,weight):
     images = [filename for filename in os.listdir(image_folder) if filename.endswith(('.jpg', '.png'))]
     images = sorted(images)
     # model_path = "" #FUNCIONA
-    # model_path = "Alignedreid/Market1501_Resnet50_Alignedreid(LS)/checkpoint_ep300.pth.tar" #FUNCIOAN
+    # model_path = "AlignedReID/Market1501_Resnet50_Alignedreid(LS)/checkpoint_ep300.pth.tar" #FUNCIOAN
     model = load_model_alignreid(model_path=weight)
     results_matrix = []
     

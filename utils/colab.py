@@ -73,7 +73,7 @@ def transreid_result(folder_path="",pretrain_path="",weight=""):
     return features_array, image_names
 
 def alignedreid_result(folder_path="", weight=''):
-    model_path = "Alignedreid/Cuhk03_Resnet50_Alignedreid/checkpoint_ep300.pth.tar" #FUNCIONA
+    model_path = "AlignedReID/Cuhk03_Resnet50_Alignedreid/checkpoint_ep300.pth.tar" #FUNCIONA
     model = load_model_alignreid(model_path=model_path)
     images = extract_images_from_subfolders(folder_path)
     # Extract image names from paths
