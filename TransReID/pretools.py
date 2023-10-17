@@ -7,7 +7,7 @@ from PIL import Image
 
 
 def load_model(pretrain_path='',weight=''):
-    cfg.merge_from_file("./TransReID/configs/market/vit_transreid.yml")
+    cfg.merge_from_file("./TransReID/configs/Market/vit_transreid.yml")
     # cfg.merge_from_file("./configs/market/vit_transreid_stride.yml")
     cfg.MODEL.PRETRAIN_PATH =  pretrain_path
     cfg.TEST.WEIGHT =  weight
