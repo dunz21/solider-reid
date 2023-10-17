@@ -58,7 +58,7 @@ def test():
 
 
 if __name__ == "__main__":
-    test()
+    heatmap_solider('people_2',weight='./model/swin_base_market.pth',semantic_weight=0.2)
     exit()
     features_from_csv = pd.read_csv('solider.csv').sort_values(by='folder')
     A=16

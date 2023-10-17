@@ -95,9 +95,9 @@ def heatmap_solider(folder_path,weight,semantic_weight=0.2):
     model = load_model_solider(weight=weight,semantic_weight=semantic_weight)
     images = extract_images_from_subfolders(folder_path)
     images = sorted(images)
-
     results_matrix = []
-    
+    image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
+
     # Version with all images and 1 infer in a total array (IMPROVE PERFORMANCE)
     total_batch = [preprocess_image(img ,384,128) for img in images]
     with torch.no_grad():
@@ -111,7 +111,7 @@ def heatmap_solider(folder_path,weight,semantic_weight=0.2):
         results_matrix.append(img_results)
 
     # Create a DataFrame with the results
-    df = pd.DataFrame(results_matrix, columns=images, index=images)
+    df = pd.DataFrame(results_matrix, columns=image_names, index=image_names)
     
     # Write the DataFrame to a CSV file
     # df.to_csv('similar_images_result_'+folder_name+'.csv')
@@ -127,6 +127,7 @@ def heatmap_transreid(folder_path,pretrain_path="TransReID/model/jx_vit_base_p16
     images = extract_images_from_subfolders(folder_path)
     images = sorted(images)
     results_matrix = []
+    image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
     
     # Version with all images and 1 infer in a total array (IMPROVE PERFORMANCE)
     total_batch = [preprocess_image(img ,256,128) for img in images]
@@ -141,7 +142,7 @@ def heatmap_transreid(folder_path,pretrain_path="TransReID/model/jx_vit_base_p16
         results_matrix.append(img_results)
 
     # Create a DataFrame with the results
-    df = pd.DataFrame(results_matrix, columns=images, index=images)
+    df = pd.DataFrame(results_matrix, columns=image_names, index=image_names)
     
     # Write the DataFrame to a CSV file
     # df.to_csv('similar_images_result_'+folder_name+'.csv')
@@ -156,6 +157,8 @@ def heatmap_alignreid(folder_path,weight):
     model = load_model_alignreid(model_path=weight)
     images = extract_images_from_subfolders(folder_path)
     images = sorted(images)
+    image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
+
     # model_path = "" #FUNCIONA
     # model_path = "AlignedReID/Market1501_Resnet50_Alignedreid(LS)/checkpoint_ep300.pth.tar" #FUNCIOAN
     results_matrix = []
@@ -173,7 +176,7 @@ def heatmap_alignreid(folder_path,weight):
         results_matrix.append(img_results)
 
     # Create a DataFrame with the results
-    df = pd.DataFrame(results_matrix, columns=images, index=images)
+    df = pd.DataFrame(results_matrix, columns=image_names, index=image_names)
     
     # Write the DataFrame to a CSV file
     # df.to_csv('similar_images_result_'+folder_name+'.csv')
