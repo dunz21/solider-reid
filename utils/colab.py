@@ -27,6 +27,8 @@ from TransReID.pretools import load_model as load_model_transreid
 from AlignedReID.pretools import load_model as load_model_alignreid
 from deepface import DeepFace
 import contextlib
+from deepface.detectors import FaceDetector
+import cv2
 
 #Probar normalizar datos. Aplicar clustering antes!!! Que puta es el 1024, y aplicar medidas locales
 def extract_images_from_subfolders(folder_paths):
@@ -94,12 +96,15 @@ def alignedreid_result(folder_path="", weight=''):
 
 def face_id_results(folder_path,model='Facenet512',backend='opencv',enforce_detection=True):
     images = extract_images_from_subfolders(folder_path)
+    images = sorted(images)
     # Extract image names from paths
     image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
     features_array = []
+    facial_area = []
+    confidence = []
     non_detections = []
-    
-    for img in images:
+    detection = []
+    for i,img in enumerate(images):
         #embeddings
         try:
             with open(os.devnull, 'w') as fnull:
@@ -107,12 +112,74 @@ def face_id_results(folder_path,model='Facenet512',backend='opencv',enforce_dete
                     embedding_objs = DeepFace.represent(img_path = img, model_name = model,enforce_detection=enforce_detection,detector_backend = backend)
             embedding = embedding_objs[0]["embedding"]
             features_array.append(embedding)
+            confidence.append(embedding_objs[0]["confidence"])
+            facial_area.append(embedding_objs[0]["facial_area"])
+            detection.append(image_names[i])
         except:
-            non_detections.append(img.split('/')[-1])
+            non_detections.append(image_names[i])
             continue
-    print(f"Non detections face: {len(non_detections)} {backend}")
-    return features_array, image_names
+    print(f"Non detections face (Total/Detec): {len(image_names)} {len(detection)} {backend} {' '.join(detection)}")
+    return features_array, images, image_names, facial_area, confidence
 
+def face_id_details(folder_path,model='Facenet512',backend='opencv',enforce_detection=True):
+    images = extract_images_from_subfolders(folder_path)
+    images = sorted(images)
+    image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
+    detections = []
+    for i,img in enumerate(images):
+        #embeddings
+        img = cv2.imread(img)
+        face_detector = FaceDetector.build_model(backend)
+        face_objs = FaceDetector.detect_faces(face_detector, backend, img, True)
+        if len(face_objs) != 0:
+            detections.append((face_objs,images[i],image_names[i]))
+    print(f"Non detections face (Total/Detec): {len(image_names)} {len(detections)} {backend}")
+    plot_face_details(detections)
+    return detections
+
+
+def plot_face_details(detections):
+    # Number of images
+    num_images = len(detections)
+    
+    # Calculate rows for a 6-column grid
+    num_rows = -(-num_images // 6)  # This is a ceiling division
+    
+    # Create a figure with subplots
+    fig, axes = plt.subplots(num_rows, 6, figsize=(20, 3*num_rows))
+    
+    # Flatten the axes for easier indexing
+    axes = axes.ravel()
+    
+    # Iterate over each image and its detections
+    for i, (face_objs, img_path, img_name) in enumerate(detections):
+        # Load the image using the path
+        img = cv2.imread(img_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        
+        # For each detected face in the image
+        for face_obj in face_objs:
+            x, y, w, h = face_obj[1][0], face_obj[1][1], face_obj[1][2], face_obj[1][3]
+            confidence = face_obj[2]
+            
+            # Draw rectangle on the image
+            cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            
+            # Add confidence text at the bottom of the rectangle
+            text = f"{confidence:.3f}"
+            cv2.putText(img, text, (x, y+h+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        
+        # Display the image with its name at the bottom
+        axes[i].imshow(img)
+        axes[i].axis('off')  # Hide axis values
+        axes[i].set_title(img_name, fontsize=10, y=-0.2)
+    
+    # Hide any remaining subplots if the number of images is not a multiple of 6
+    for j in range(num_images, num_rows*6):
+        axes[j].axis('off')
+    
+    plt.tight_layout()
+    plt.show()
 #### MODELS
 
 def heatmap_solider(folder_path,weight,semantic_weight=0.2,figsize=(12, 10), plot=True):

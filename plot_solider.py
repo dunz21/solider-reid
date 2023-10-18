@@ -2,6 +2,8 @@ from utils.colab import *
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
+from deepface.commons import functions, realtime, distance as dst
+from deepface.detectors import FaceDetector
 
 def final():
     features_from_csv = pd.read_csv('solider.csv').sort_values(by='folder')
@@ -26,8 +28,8 @@ def final():
 def test():
     test = [
     # './images_subframev2',
-    './images_subframev2/90',
-    './images_subframev2/2',
+    './images_subframev2/41',
+    # './images_subframev2/2',
     # './images_subframev2/114',
     # './images_subframev2/90',
     # './images_subframev2/130',
@@ -70,13 +72,26 @@ def test():
         'yolov8',
         'yunet',
         ]
+    
+    
+    result = face_id_details(folder_path=test,model=models[2],backend=backends[4])
+    return False
     # features , images_names = solider_result(folder_path=test, weight='./model/swin_base_market.pth')
-    # features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[2])
-    features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[3])
-    features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[4])
-    # features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[5])
-    # features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[6])
-    # features_2 , images_names_2 = face_id_results(folder_path=test,model=models[2],backend=backends[7])
+    # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[0])
+    # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[1])
+    # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[2])
+    # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[3])
+    # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[0])
+    features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[1])
+    # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[2])
+    features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[3])
+    features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[4])
+    # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[5])
+    # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[6])
+    # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[7])
+    # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[5])
+    # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[6])
+    # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[7])
     # features_3 , images_names_3 = alignedreid_result(folder_path=test, weight='./model/swin_base_market.pth')
 
     # plot_mds(features_array=features, image_names=images_names,simpleLegend=True, title='solider_result',scaler=True)
