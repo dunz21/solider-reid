@@ -1,4 +1,4 @@
-https://github.com/Drakefsi/pj-react/pull/5383from utils.logger import setup_logger
+from utils.logger import setup_logger
 from datasets import make_dataloader
 from model import make_model
 from solver import make_optimizer, WarmupMultiStepLR
@@ -22,17 +22,36 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
 
+
+
+# python train.py 
+# MODEL.PRETRAIN_CHOICE 'self' 
+# MODEL.PRETRAIN_PATH 'path/to/SOLIDER/log/lup/swin_tiny/checkpoint_tea.pth' 
+# OUTPUT_DIR './log/msmt17/swin_tiny' 
+# SOLVER.BASE_LR 0.0008 
+# SOLVER.OPTIMIZER_NAME 'SGD' 
+# MODEL.SEMANTIC_WEIGHT 0.2
+
+class Options:
+    def __init__(self):
+        self.config_file = 'configs/market/swin_tiny.yml'  # Specify the path to the video
+        self.opts = ''
+        self.local_rank = 0
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="ReID Baseline Training")
-    parser.add_argument(
-        "--config_file", default="", help="path to config file", type=str
-    )
-
-    parser.add_argument("opts", help="Modify config options using the command-line", default=None,
-                        nargs=argparse.REMAINDER)
+    parser.add_argument("--config_file", default="", help="path to config file", type=str)
+    parser.add_argument("opts", help="Modify config options using the command-line", default=None,nargs=argparse.REMAINDER)
     parser.add_argument("--local_rank", default=0, type=int)
     args = parser.parse_args()
+
+    ### DEBUG ###
+    cfg.MODEL.PRETRAIN_CHOICE = 'self'
+    cfg.MODEL.PRETRAIN_PATH = ''
+    cfg.MODEL.SEMANTIC_WEIGHT = 0.2
+    args = Options()
+    ### DEBUG ###
 
     if args.config_file != "":
         cfg.merge_from_file(args.config_file)

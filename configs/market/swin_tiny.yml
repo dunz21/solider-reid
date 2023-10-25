@@ -20,7 +20,7 @@ INPUT:
 
 DATASETS:
   NAMES: ('market1501')
-  ROOT_DIR: ('data')
+  ROOT_DIR: ('/Users/diegosepulveda/Documents/diego/dev/ML/DataSets')
 
 DATALOADER:
   SAMPLER: "softmax_triplet"
