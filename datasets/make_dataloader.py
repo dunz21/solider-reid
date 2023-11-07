@@ -69,7 +69,7 @@ def make_dataloader(cfg):
             mini_batch_size = cfg.SOLVER.IMS_PER_BATCH // dist.get_world_size()
             data_sampler = RandomIdentitySampler_DDP(dataset.train, cfg.SOLVER.IMS_PER_BATCH, cfg.DATALOADER.NUM_INSTANCE)
             batch_sampler = torch.utils.data.sampler.BatchSampler(data_sampler, mini_batch_size, True)
-            train_loader = torch.utils.data.DataLoader(
+            train_loader = DataLoader(
                 train_set,
                 num_workers=num_workers,
                 batch_sampler=batch_sampler,
@@ -78,7 +78,8 @@ def make_dataloader(cfg):
             )
         else:
             train_loader = DataLoader(
-                train_set, batch_size=cfg.SOLVER.IMS_PER_BATCH,
+                train_set, 
+                batch_size=cfg.SOLVER.IMS_PER_BATCH,
                 sampler=RandomIdentitySampler(dataset.train, cfg.SOLVER.IMS_PER_BATCH, cfg.DATALOADER.NUM_INSTANCE),
                 num_workers=num_workers, collate_fn=train_collate_fn
             )

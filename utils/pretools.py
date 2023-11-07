@@ -34,7 +34,8 @@ def preprocess_image(img_path, heigth,width):
     transform = transforms.Compose([
         transforms.Resize((heigth, width)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
     image = Image.open(img_path).convert('RGB')
     image = transform(image)

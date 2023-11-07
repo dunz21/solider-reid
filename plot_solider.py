@@ -4,6 +4,7 @@ import warnings
 warnings.filterwarnings('ignore')
 from deepface.commons import functions, realtime, distance as dst
 from deepface.detectors import FaceDetector
+from utils.solider_tools import create_dataframe_from_folder
 
 def final():
     features_from_csv = pd.read_csv('solider.csv').sort_values(by='folder')
@@ -29,25 +30,6 @@ def test():
     test = [
     # './images_subframev2',
     './images_subframev2/41',
-    # './images_subframev2/2',
-    # './images_subframev2/114',
-    # './images_subframev2/90',
-    # './images_subframev2/130',
-    # './images_subframev2/139',
-    # './images_subframev2/89',
-    # './images_subframev2/6',
-    # './images_subframev2/45',
-    # './images_subframev2/108',
-    # './images_subframev2/158',
-    # './images_subframev2/10',
-    # './images_subframev2/44',
-    # './images_subframev2/72',
-    # './images_subframev2/2',
-    # './images_subframev2/90',
-    # './images_subframev2/77',
-    # './images_subframev2/130',
-    # './images_subframev2/2',
-    # './images_testsss',
     ]
     models = [
         "VGG-Face", 
@@ -74,18 +56,18 @@ def test():
         ]
     
     
-    result = face_id_details(folder_path=test,model=models[2],backend=backends[4])
-    return False
-    # features , images_names = solider_result(folder_path=test, weight='./model/swin_base_market.pth')
+    # result = face_id_details(folder_path=test,model=models[2],backend=backends[4])
+    # return False
+    features , images_names = solider_result(folder_path=test, weight='./model/swin_base_market.pth')
     # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[0])
     # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[1])
     # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[2])
     # features_2 , images_names_2 = face_id_results(folder_path='people_faces',model=models[2],backend=backends[3])
     # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[0])
-    features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[1])
+    # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[1])
     # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[2])
-    features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[3])
-    features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[4])
+    # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[3])
+    # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[4])
     # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[5])
     # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[6])
     # features_2 , images, images_names_2, facial_area, confidence = face_id_results(folder_path=test,model=models[2],backend=backends[7])
@@ -99,8 +81,10 @@ def test():
     # plot_mds(features_array=features_3, image_names=images_names_3,simpleLegend=True, title='alignedreid_result',scaler=True)
 
 
+
+
 if __name__ == "__main__":
-    test()
+    create_dataframe_from_folder('images_copy','solider_result.csv','./model/swin_base_market.pth')
     exit()
     features_from_csv = pd.read_csv('solider.csv').sort_values(by='folder')
     A=16

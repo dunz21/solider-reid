@@ -12,8 +12,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from siamese_triplet.siamese_inference import test_triplet_similarity
 import copy
+from PIL import Image
 
 MAX_EUCLEDIAN_DISTANCE = 150 #Valor máximo de la distancia euclidea para considerar misma persona. Tiene que configurarse de forma empírica
 def solider_model():
@@ -169,11 +169,23 @@ def transform_image(image):
     )
     image = transform(image)
     return image
+def box_cxcywh_to_xyxy(x):
+    x_c, y_c, w, h = x.unbind(1)
+    b = [(x_c - 0.5 * w), (y_c - 0.5 * h),
+         (x_c + 0.5 * w), (y_c + 0.5 * h)]
+    return torch.stack(b, dim=1)
 
+def rescale_bboxes(out_bbox, size):
+    img_w, img_h = size
+    b = box_cxcywh_to_xyxy(out_bbox)
+    b = b * torch.tensor([img_w, img_h, img_w, img_h], dtype=torch.float32)
+    return b
 
 def main():
+    PATH_VIDEO = '/Users/diegosepulveda/Documents/CONCE_TEST_TRACK_ID_BENCHMARK.mp4'
+    OUTPUT_VIDEO = "/Users/diegosepulveda/Documents/diego/dev/ML/Cams/papers/SOLIDER-REID/output.mp4"
     #Configuración de OpenCV
-    cap = cv2.VideoCapture("./retail.mp4") #INTRODUCIR PATH DEL VIDEO.
+    cap = cv2.VideoCapture(PATH_VIDEO) #INTRODUCIR PATH DEL VIDEO.
 
     if not cap.isOpened():
         print("Error: Could not open video file.")
@@ -187,9 +199,16 @@ def main():
 
     # Define the codec and create a VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Use appropriate codec (e.g., 'XVID', 'MJPG', 'H264', etc.)
-    out = cv2.VideoWriter("/Users/diegosepulveda/Documents/diego/dev/ML/Cams/papers/SOLIDER-REID/output.mp4", fourcc, fps, (width, height)) #INTRODUCIR PATH DE GUARDADO
+    out = cv2.VideoWriter(OUTPUT_VIDEO, fourcc, fps, (width, height)) #INTRODUCIR PATH DE GUARDADO
 
     yolo = YOLO("yolov8n.pt") #Crea modelo de detección
+    model = torch.hub.load('facebookresearch/detr', 'detr_resnet50', pretrained=True)
+    model.eval()
+    transform = pth_transforms.Compose([
+        pth_transforms.Resize(800),
+        pth_transforms.ToTensor(),
+        pth_transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #Selecciona GPU si está disponible
     t1=0
     t2=0
@@ -209,24 +228,34 @@ def main():
             break
         detections = yolo.track(frame,verbose=False,persist=True,classes=0)[0] #Genera detecciones de personas
         boxes = detections.cpu().numpy().boxes.data
-        
-        for output in boxes: #Procesa cada persona por separado
+
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        pil_image = Image.fromarray(frame_rgb)
+
+        img = transform(pil_image).unsqueeze(0)
+
+        outputs = model(img)
+        # keep only predictions with 0.7+ confidence
+        probas = outputs['pred_logits'].softmax(-1)[0, :, :-1]
+        keep = probas.max(-1).values > 0.9
+        bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep], pil_image.size)
+        for output in bboxes_scaled: #Procesa cada persona por separado
             bbox_tl_x = int(output[0])
             bbox_tl_y = int(output[1])
             bbox_br_x = int(output[2])
             bbox_br_y = int(output[3])
-            tracker_id = int(output[4])
-            class_ = int(output[6])
-            score = int(output[5])
+            tracker_id = 1
+            # class_ = int(output[6])
+            # score = int(output[5])
             sub_frame = copy.copy(frame[bbox_tl_y:bbox_br_y,bbox_tl_x:bbox_br_x]) #Extrae el sub frame donde aparece cada persona
-            if tracker_id not in total_images_dict:
-                total_images_dict[tracker_id] =  sub_frame
-                # DEBUG PURPOSE
-                id_directory = os.path.join('images_subframe_delete')    
-                if not os.path.exists(id_directory):
-                    os.makedirs(id_directory)
-                save_path = os.path.join(id_directory, f"img_{tracker_id}.png")
-                cv2.imwrite(save_path, sub_frame)
+            # if tracker_id not in total_images_dict:
+            #     total_images_dict[tracker_id] =  sub_frame
+            #     # DEBUG PURPOSE
+            #     id_directory = os.path.join('images_subframe_delete')    
+            #     if not os.path.exists(id_directory):
+            #         os.makedirs(id_directory)
+            #     save_path = os.path.join(id_directory, f"img_{tracker_id}.png")
+            #     cv2.imwrite(save_path, sub_frame)
 
 
 
@@ -239,12 +268,12 @@ def main():
             # plot_feature_maps(feature_maps)
             # visualize_feat_heatmap(feat)
             # tracker_feat_id = track_by_feat(tracker_id,ids_feat_dict,feat)
-            tracker_feat_id = tracker_siamese(initial_dict,total_images_dict,tracker_id,sub_frame,n_frame)
+            # tracker_feat_id = tracker_siamese(initial_dict,total_images_dict,tracker_id,sub_frame,n_frame)
             cv2.rectangle(frame, (bbox_tl_x, bbox_tl_y),(bbox_br_x, bbox_br_y), color=drawing_color, thickness=2) #Draw detection rectangle
-            cv2.putText(frame, f"{tracker_id} || {tracker_feat_id}", (bbox_tl_x, bbox_tl_y), cv2.FONT_HERSHEY_COMPLEX, 1, color=drawing_color, thickness=1) #Draw detection value
+            # cv2.putText(frame, f"{tracker_id} || {tracker_feat_id}", (bbox_tl_x, bbox_tl_y), cv2.FONT_HERSHEY_COMPLEX, 1, color=drawing_color, thickness=1) #Draw detection value
 
         out.write(frame) #Guarda frame
-        cv2.imshow('/Users/diegosepulveda/Documents/diego/dev/ML/Cams/papers/SOLIDER-REID/retail.mp4',frame)
+        # cv2.imshow(PATH_VIDEO,frame)
         print('frame {}/{} ({:.2f} ms) Tracker {:.1f} Tracker '.format(n_frame, int(frame_count),(t2-t1) * 1000,1E3 * (t4-t3)))
 
         # if n_frame == 13:
