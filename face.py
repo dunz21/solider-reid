@@ -1,6 +1,6 @@
 from deepface import DeepFace
 from utils.colab import extract_images_from_subfolders,plot_mds
-from utils.images_folder import select_and_copy_random_images,rename_and_copy_images
+from utils.folder_images import select_and_copy_random_images,rename_and_copy_images
 
 
 if __name__ == "__main__":
