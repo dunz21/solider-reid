@@ -23,7 +23,8 @@ INPUT:
 
 DATASETS:
   NAMES: ('market1501')
-  ROOT_DIR: ('path/to/market1501/datasets')
+  ROOT_DIR: ('/home/diego/Documents/solider-reid/datasets/TrainingDatasetSolider')
+  # ROOT_DIR: ('/home/diego/Documents/')
 
 DATALOADER:
   SAMPLER: "softmax_triplet"
@@ -32,15 +33,15 @@ DATALOADER:
 
 SOLVER:
   OPTIMIZER_NAME: "SGD"
-  MAX_EPOCHS: 120
+  MAX_EPOCHS: 140
   BASE_LR: 0.0008
-  WARMUP_EPOCHS: 20
-  IMS_PER_BATCH: 64
+  WARMUP_EPOCHS: 200
+  IMS_PER_BATCH: 104
   WARMUP_METHOD: "cosine"
   LARGE_FC_LR: False
-  CHECKPOINT_PERIOD: 120
+  CHECKPOINT_PERIOD: 10
   LOG_PERIOD: 20
-  EVAL_PERIOD: 10
+  EVAL_PERIOD: 5
   WEIGHT_DECAY: 1e-4
   WEIGHT_DECAY_BIAS: 1e-4
   BIAS_LR_FACTOR: 2
@@ -53,4 +54,4 @@ TEST:
   NECK_FEAT: "before"
   FEAT_NORM: "yes"
 
-OUTPUT_DIR: "./log/market1501/swin_base"
+OUTPUT_DIR: "./log/market1501/swin_base4"

@@ -8,11 +8,12 @@ from PIL import Image
 
 def load_model(model_path):
     model_alignedreid = init_model(name='resnet50', num_classes=0, loss={'softmax', 'metric'},aligned=True)
-    checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    checkpoint = torch.load(model_path,map_location=device)
     model_dict = checkpoint['state_dict']
     pretrained_dict = {k: v for k, v in model_dict.items() if k not in ['classifier.weight', 'classifier.bias']}
     model_alignedreid.load_state_dict(pretrained_dict)
-    model_alignedreid = model_alignedreid.cpu()
+    model_alignedreid.to(device)
     model_alignedreid.eval()
     return model_alignedreid
 

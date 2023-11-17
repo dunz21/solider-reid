@@ -53,11 +53,12 @@ def solider_result(folder_path="", weight='',semantic_weight=0.2):
     images = extract_images_from_subfolders(folder_path)
     # Extract image names from paths
     image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
-    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
     # Extract features
     total_batch = [torch.stack([preprocess_image(img,384,128)], dim=0) for img in images]
     with torch.no_grad():
-        features_list, _ = model(torch.cat(total_batch,dim=0))
+        features_list, _ = model(torch.cat(total_batch,dim=0).to(device))
     
     # Convert tensor to numpy array
     features_array = features_list.cpu().numpy()
@@ -84,11 +85,11 @@ def alignedreid_result(folder_path="", weight=''):
     images = extract_images_from_subfolders(folder_path)
     # Extract image names from paths
     image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
-    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Extract features
     total_batch = [torch.stack([preprocess_image(img,384,128)], dim=0) for img in images]
     with torch.no_grad():
-        features_list, _ = model(torch.cat(total_batch,dim=0))
+        features_list, _ = model(torch.cat(total_batch,dim=0).to(device))
     
     # Convert tensor to numpy array
     features_array = features_list.cpu().numpy()

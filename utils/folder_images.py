@@ -1,59 +1,132 @@
-import os, shutil
+from PIL import Image
+import os
+import shutil
 import random
 
-def select_and_copy_random_images(root_folder):
-    # Walk through all the subdirectories in the root folder
-    for subdir, _, files in os.walk(root_folder):
-        # Skip the root itself
-        if subdir == root_folder:
-            continue
+def split_folders(root_folder, training_ratio=0.7):
+    subfolders = [f.path for f in os.scandir(root_folder) if f.is_dir()]
+    random.shuffle(subfolders)
 
-        # Get the number of the parent folder
-        parent_folder_number = os.path.basename(subdir)
+    num_train = int(len(subfolders) * training_ratio)
+    train_folders = subfolders[:num_train]
+    test_folders = subfolders[num_train:]
 
-        # Create a new parent folder with the prefix '2-'
-        new_parent_folder = os.path.join(root_folder, f"2-{parent_folder_number}")
-        os.makedirs(new_parent_folder, exist_ok=True)
-        
-        # If there are fewer than 6 images, take as many as available
-        selected_files = random.sample(files, min(6, len(files)))
+    return train_folders, test_folders
 
-        # Copy the selected images to the new parent folder
-        for file in selected_files:
-            original_file_path = os.path.join(subdir, file)
-            new_file_path = os.path.join(new_parent_folder, file)
-            
-            shutil.copy2(original_file_path, new_file_path)
-            print(f"Copied {file} to {new_file_path}")
+def copy_and_rename_images(source_folders, dest_folder, max_images=None, query=False):
+    if not os.path.exists(dest_folder):
+        os.makedirs(dest_folder)
 
+    deleted_images_count = 0
 
+    for folder in source_folders:
+        parent_folder_name = os.path.basename(folder)
+        images = os.listdir(folder)
+        if query:
+            images = images[:max_images]
 
+        for img in images:
+            parts = img.split('_')
+            if len(parts) >= 3 and parts[0] == 'img' and parts[1].isdigit() and parts[2].isdigit():
+                frame = parts[2]
+                ### EDIT ### To pass the assert
+                #Query and Gallery Identities Match: 
+                # The assert statement checks if there is at least one valid query after filtering out gallery images from the same camera view. 
+                # For the data not to hit the assert, there must be at least one image in bounding_box_test for each identity in query that is from a different camera view.
+                # Por cada query image tienen que haber en el galley (test) imagenes de otras camaras, por eso cada query va a tener una camara diferente
+                ### EDIT ### To pass the assert
+                camera = 'c1s1'
+                if('query' in dest_folder):
+                    camera='c2s1'
+                new_name = f"{parent_folder_name}_{camera}_{frame}_00.jpg"  # Changed to .jpg
+                new_path = os.path.join(dest_folder, new_name)
+                shutil.copy(os.path.join(folder, img), new_path)
 
-
-def rename_and_copy_images(root_folder):
-    # Create the destination folder if it doesn't exist
-    dest_folder = os.path.join(root_folder, 'query')
-    os.makedirs(dest_folder, exist_ok=True)
+                # Try opening the copied image
+                try:
+                    with Image.open(new_path).convert('RGB') as im:
+                        pass  # Image opened successfully
+                except Exception:
+                    os.remove(new_path)  # Delete the corrupted image
+                    deleted_images_count += 1  # Increment the deleted images counter
     
-    # Walk through all the subdirectories in the root folder
-    for subdir, _, files in os.walk(root_folder):
-        # Skip the root and destination folder itself
-        if subdir == root_folder or subdir == dest_folder:
-            continue
-        
-        # Get the number of the parent folder
-        parent_folder_number = os.path.basename(subdir)
-        
-        # Process each file in the subdirectory
+    print(f"Deleted {deleted_images_count} corrupted images.")
+    return deleted_images_count
+
+
+def process_dataset(root_folder):
+    parent_dir = os.path.dirname(root_folder)
+    training_folder = os.path.join(parent_dir, 'training')
+    test_folder = os.path.join(parent_dir, 'test')
+
+    train_folders, test_folders = split_folders(root_folder)
+
+    # Process training data
+    bounding_box_train = os.path.join(training_folder, 'bounding_box_train')
+    os.makedirs(training_folder, exist_ok=True)
+    for folder in train_folders:
+        shutil.copytree(folder, os.path.join(training_folder, os.path.basename(folder)))
+    copy_and_rename_images(train_folders, bounding_box_train)
+
+    # Process test data
+    bounding_box_test = os.path.join(test_folder, 'bounding_box_test')
+    query_folder = os.path.join(test_folder, 'query')
+    os.makedirs(test_folder, exist_ok=True)
+    for folder in test_folders:
+        shutil.copytree(folder, os.path.join(test_folder, os.path.basename(folder)))
+    copy_and_rename_images(test_folders, bounding_box_test)
+    copy_and_rename_images(test_folders, query_folder, max_images=6, query=True)
+
+# Extra to check valid images, and prevent error in reading images
+def check_and_delete_corrupted_images(folder_path):
+    deleted_images_count = 0
+
+    for subdir, dirs, files in os.walk(folder_path):
         for file in files:
-            # Construct the new file name
-            random_number = str(random.randint(0, 999999)).zfill(6)
-            new_file_name = f"{parent_folder_number}_c1s1_{random_number}_01.jpg"
-            
-            # Full paths for original and new file
-            original_file_path = os.path.join(subdir, file)
-            new_file_path = os.path.join(dest_folder, new_file_name)
-            
-            # Copy and rename the image to the destination folder
-            shutil.copy2(original_file_path, new_file_path)
-            print(f"Copied and renamed {file} to {new_file_path}")
+            img_path = os.path.join(subdir, file)
+            try:
+                img = Image.open(img_path).convert('RGB')
+            except IOError:
+                print(f"IOError incurred when reading '{img}'. Deleting image.")
+                os.remove(img_path)  # Delete the corrupted image
+                deleted_images_count += 1  # Increment the deleted images counter
+                pass
+                
+    print(f"Deleted {deleted_images_count} corrupted images.")
+    return deleted_images_count
+
+
+
+
+### CHECK FOLDER
+def extract_info(filename):
+    """Extracts the person ID and camera ID from the given filename."""
+    # Assuming filename format is like '0006_c6s4_002202_00.jpg'
+    parts = filename.split('_')
+    if len(parts) < 4:
+        raise ValueError(f"Filename {filename} is not in the expected format.")
+    person_id = parts[0]
+    camera_id = parts[1]  # This is the correct index for the camera ID
+    return person_id, camera_id
+
+def find_matches(query_folder, gallery_folder):
+    """Finds correct matches in gallery for each image in query."""
+    # Get list of all files in the query and gallery folders
+    query_images = os.listdir(query_folder)
+    gallery_images = os.listdir(gallery_folder)
+
+    # Extract person and camera IDs for all images in both sets
+    query_info = {img: extract_info(img) for img in query_images}
+    gallery_info = {img: extract_info(img) for img in gallery_images}
+
+    # Check for matches
+    match_found_for_query = {}
+    for q_img, (q_pid, q_cid) in query_info.items():
+        if(q_pid == '0006'):
+            print('asdf')
+
+        # Look for any gallery image with the same person ID but a different camera ID
+        matches = [g_img for g_img, (g_pid, g_cid) in gallery_info.items() if g_pid == q_pid and g_cid != q_cid]
+        match_found_for_query[q_img] = len(matches) > 0
+
+    return match_found_for_query

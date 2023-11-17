@@ -34,12 +34,12 @@ def set_seed(seed):
 
 class Options:
     def __init__(self):
-        self.config_file = 'configs/market/swin_tiny.yml'  # Specify the path to the video
+        self.config_file = 'configs/market/swin_base.yml'  # Specify the path to the video
         self.opts = ''
         self.local_rank = 0
 
 if __name__ == '__main__':
-
+    torch.cuda.empty_cache()
     parser = argparse.ArgumentParser(description="ReID Baseline Training")
     parser.add_argument("--config_file", default="", help="path to config file", type=str)
     parser.add_argument("opts", help="Modify config options using the command-line", default=None,nargs=argparse.REMAINDER)
@@ -48,8 +48,8 @@ if __name__ == '__main__':
 
     ### DEBUG ###
     cfg.MODEL.PRETRAIN_CHOICE = 'self'
-    cfg.MODEL.PRETRAIN_PATH = ''
-    cfg.MODEL.SEMANTIC_WEIGHT = 0.2
+    cfg.MODEL.PRETRAIN_PATH = '/home/diego/Documents/solider-reid/model/swin_base_patch4_window7_224_22k.pth'
+    cfg.MODEL.SEMANTIC_WEIGHT = 0.8
     args = Options()
     ### DEBUG ###
 
@@ -59,6 +59,7 @@ if __name__ == '__main__':
     
     cfg.freeze()
     set_seed(cfg.SOLVER.SEED)
+
 
     if cfg.MODEL.DIST_TRAIN:
         torch.cuda.set_device(args.local_rank)

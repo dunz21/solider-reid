@@ -1,34 +1,47 @@
-from deepface import DeepFace
-from utils.colab import extract_images_from_subfolders,plot_mds
-from utils.folder_images import select_and_copy_random_images,rename_and_copy_images
+import os
+import filecmp
+import shutil
 
+def compare_folders_and_move_diffs(folder1, folder2, target_folder):
+    # Check if the given paths are directories
+    if not os.path.isdir(folder1) or not os.path.isdir(folder2):
+        return "Both paths should be directories."
 
-if __name__ == "__main__":
-    rename_and_copy_images('/Users/diegosepulveda/Downloads/DataTrainingRevisada')
+    # Initialize a dircmp object to compare the folders
+    dcmp = filecmp.dircmp(folder1, folder2)
 
-    # folders = [
-    #     # './images_subframev2',
-    #     './images_subframev2/29',
-    #     './images_subframev2/48',
-    #     # './images_subframev2/36',
-    #     # './images_subframev2/90',
-    #     # './images_subframev2/130',
-    #     # './images_subframev2/139',
-    #     # './images_subframev2/89',
-    #     # './images_subframev2/6',
-    #     # './images_subframev2/45',
-    #     # './images_subframev2/108',
-    #     # './images_subframev2/158',
-    #     # './images_subframev2/10',
-    #     # './images_subframev2/44',
-    #     # './images_subframev2/72',
-    #     # './images_subframev2/2',
-    #     # './images_subframev2/90',
-    #     # './images_subframev2/77',
-    #     # './images_subframev2/130',
-    #     # './images_subframev2/2',
-    #     # './images_testsss',
-    #     ]
-    # features, images_names = face_id(folder_path=folders)
-    # plot_mds(features_array=features, image_names=images_names,simpleLegend=True, title='Face')
-    
+    # Lists to store the differences found in files
+    left_only = dcmp.left_only
+    right_only = dcmp.right_only
+    diff_files = dcmp.diff_files
+
+    # Create the target folder if it doesn't exist
+    os.makedirs(target_folder, exist_ok=True)
+
+    # Move differing files to the target folder
+    for filename in left_only:
+        source_path = os.path.join(folder1, filename)
+        target_path = os.path.join(target_folder, filename)
+        shutil.move(source_path, target_path)
+
+    # Format and return the results
+    result = {
+        "Files only in folder1": left_only,
+        "Files only in folder2": right_only,
+        "Differing files": diff_files
+    }
+
+    return result
+
+# Example usage:
+folder1 = "/home/diego/Downloads/DataTrainingRevisada"
+folder2 = "/home/diego/Downloads/DataTrainingRevisada/DataTrainingRevisada"
+target_folder = "/home/diego/Downloads/DataAdicionalTest"
+
+differences = compare_folders_and_move_diffs(folder1, folder2, target_folder)
+for key, value in differences.items():
+    print(key)
+    for item in value:
+        print(f"  {item}")
+
+print(f"Differing files have been moved to {target_folder}.")
