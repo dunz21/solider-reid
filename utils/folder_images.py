@@ -55,25 +55,27 @@ def copy_and_rename_images(source_folders, dest_folder, max_images=None, query=F
 
 
 def process_dataset(root_folder):
+    """
+        Transform a folder with subfolder identities into market1501 type dataset
+    """
     parent_dir = os.path.dirname(root_folder)
-    training_folder = os.path.join(parent_dir, 'training')
-    test_folder = os.path.join(parent_dir, 'test')
+    training_folder = os.path.join(parent_dir, 'dataset_ready')
 
     train_folders, test_folders = split_folders(root_folder)
 
     # Process training data
     bounding_box_train = os.path.join(training_folder, 'bounding_box_train')
     os.makedirs(training_folder, exist_ok=True)
-    for folder in train_folders:
-        shutil.copytree(folder, os.path.join(training_folder, os.path.basename(folder)))
+    # for folder in train_folders:
+        # shutil.copytree(folder, os.path.join(training_folder, os.path.basename(folder)))
     copy_and_rename_images(train_folders, bounding_box_train)
 
     # Process test data
-    bounding_box_test = os.path.join(test_folder, 'bounding_box_test')
-    query_folder = os.path.join(test_folder, 'query')
-    os.makedirs(test_folder, exist_ok=True)
-    for folder in test_folders:
-        shutil.copytree(folder, os.path.join(test_folder, os.path.basename(folder)))
+    bounding_box_test = os.path.join(training_folder, 'bounding_box_test')
+    query_folder = os.path.join(training_folder, 'query')
+    os.makedirs(training_folder, exist_ok=True)
+    # for folder in test_folders:
+        # shutil.copytree(folder, os.path.join(test_folder, os.path.basename(folder)))
     copy_and_rename_images(test_folders, bounding_box_test)
     copy_and_rename_images(test_folders, query_folder, max_images=6, query=True)
 
