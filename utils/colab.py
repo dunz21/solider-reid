@@ -29,6 +29,8 @@ from deepface import DeepFace
 import contextlib
 from deepface.detectors import FaceDetector
 import cv2
+import random
+from collections import defaultdict
 
 #Probar normalizar datos. Aplicar clustering antes!!! Que puta es el 1024, y aplicar medidas locales
 def extract_images_from_subfolders(folder_paths):
@@ -183,15 +185,32 @@ def plot_face_details(detections):
     plt.show()
 #### MODELS
 
-def heatmap_solider(folder_path,weight,semantic_weight=0.2,figsize=(12, 10), plot=True):
-    model = load_model_solider(weight=weight,semantic_weight=semantic_weight)
-    images = extract_images_from_subfolders(folder_path)
-    images = sorted(images)
+def heatmap_solider(folder_path, weight, semantic_weight=0.2, num_images=5, seed=42, figsize=(12, 10), plot=True):
+    random.seed(seed)  # Set the seed for reproducibility
+
+    # Load the model and extract images
+    model = load_model_solider(weight=weight, semantic_weight=semantic_weight)
+    all_images = extract_images_from_subfolders(folder_path)
+    images_by_class = defaultdict(list)
     results_matrix = []
-    image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in images]
+    # Organize images by class
+    for img_path in all_images:
+        class_label = img_path.split('/')[-1].split('_')[1]  # Implement this function based on your data
+        images_by_class[class_label].append(img_path)
+
+    # Randomly select a subset of images per class
+    selected_images = []
+    for class_label, images in images_by_class.items():
+        if len(images) > num_images:
+            selected_images.extend(random.sample(images, num_images))
+        else:
+            selected_images.extend(images)
+
+    # Rest of your code...
+    image_names = [os.path.splitext(os.path.basename(img_path))[0] for img_path in selected_images]
 
     # Version with all images and 1 infer in a total array (IMPROVE PERFORMANCE)
-    total_batch = [preprocess_image(img ,384,128) for img in images]
+    total_batch = [preprocess_image(img ,384,128) for img in selected_images]
     with torch.no_grad():
         list_features,_ = model(torch.stack(total_batch, dim=0))
 
@@ -471,7 +490,7 @@ def plot_mds(features_array="", image_names=[],simpleLegend=True, title="", figs
     
     # Extract prefix and suffix from image names for coloring
     prefixes = [int(name.split('_')[1]) for name in image_names]
-    suffixes = [int(name.split('_')[2]) for name in image_names]
+    suffixes = [int(name.split('_')[-6]) for name in image_names]
     max_suffix = max(suffixes)
     min_alpha = 0.6
     normalized_suffixes = [min_alpha + (1 - min_alpha) * (s / max_suffix) for s in suffixes]
